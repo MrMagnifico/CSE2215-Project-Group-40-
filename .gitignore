@@ -1,4 +1,5 @@
 #Build and editor-dependent folders
+.vs
 .vscode
 build
 Report/*.aux
