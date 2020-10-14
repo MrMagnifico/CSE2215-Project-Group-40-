@@ -1,14 +1,15 @@
 #Build and editor-dependent folders
-.vs
-.vscode
-build
-Report/*.aux
-Report/*.fls
-Report/*.log
-Report/*.gz
-Report/*.pdf
-Report/*.latexmk
-Report/*.fdb_latexmk
+.vs/
+.vscode/
+build/
+data/
+report/*.aux
+report/*.fls
+report/*.log
+report/*.gz
+report/*.pdf
+report/*.latexmk
+report/*.fdb_latexmk
 
 #Single files
 assignment.html
