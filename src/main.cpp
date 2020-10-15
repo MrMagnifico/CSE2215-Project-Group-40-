@@ -41,8 +41,8 @@ static glm::vec3 getFinalColor(const Scene& scene, const BoundingVolumeHierarchy
 {
     HitInfo hitInfo;
     if (bvh.intersect(ray, hitInfo)) {
-        // Draw a white debug ray.
-        drawRay(ray, glm::vec3(1.0f));
+        // Draw a blue debug ray if the ray hit.
+        drawRay(ray, glm::vec3(0.0f, 0.0f, 1.0f));
         // Set the color of the pixel to white if the ray hits.
         return glm::vec3(1.0f);
     } else {

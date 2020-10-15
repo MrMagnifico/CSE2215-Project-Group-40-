@@ -95,6 +95,9 @@ bool intersectRayWithTriangle(const glm::vec3& v0, const glm::vec3& v1, const gl
         ray.t = tOld;
         return false;
     }
+    
+    hitInfo.normal = plane.normal;
+
     return true;
 }
 
