@@ -10,6 +10,7 @@ report/*.gz
 report/*.pdf
 report/*.latexmk
 report/*.fdb_latexmk
+report/images/
 
 #Single files
 assignment.html
