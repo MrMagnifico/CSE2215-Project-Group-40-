@@ -6,6 +6,8 @@
 #include "screen.h"
 #include "trackball.h"
 #include "window.h"
+#include "lighting.h"
+#include "ray_debug.h"
 // Disable compiler warnings in third-party code (which we cannot change).
 DISABLE_WARNINGS_PUSH()
 #include <glm/gtc/type_ptr.hpp>
@@ -41,10 +43,19 @@ static glm::vec3 getFinalColor(const Scene& scene, const BoundingVolumeHierarchy
 {
     HitInfo hitInfo;
     if (bvh.intersect(ray, hitInfo)) {
-        // Draw a white debug ray.
-        drawRay(ray, glm::vec3(1.0f));
-        // Set the color of the pixel to white if the ray hits.
-        return glm::vec3(1.0f);
+        // Draw a blue debug ray if the ray hit.
+        drawRay(ray, glm::vec3(0.0f, 0.0f, 1.0f));
+
+        // Draw a green normal.
+        glm::vec3 p = ray.origin + ray.t * ray.direction;
+        intersectionNormal(p, hitInfo.normal, 1.0f);
+
+        // Calculate the lighting considering each point light source.
+        glm::vec3 lighting = glm::vec3{ 0.0f };
+        for (PointLight light : scene.pointLights) {
+            lighting = lighting + light.color * (phongDiffuseOnly(hitInfo, p, light.position) + phongSpecularOnly(hitInfo, p, light.position, ray.origin));
+        }
+        return lighting;
     } else {
         // Draw a red debug ray if the ray missed.
         drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
