@@ -43,19 +43,7 @@ static glm::vec3 getFinalColor(const Scene& scene, const BoundingVolumeHierarchy
 {
     HitInfo hitInfo;
     if (bvh.intersect(ray, hitInfo)) {
-        // Draw a blue debug ray if the ray hit.
-        drawRay(ray, glm::vec3(0.0f, 0.0f, 1.0f));
-
-        // Draw a green normal.
-        glm::vec3 p = ray.origin + ray.t * ray.direction;
-        intersectionNormal(p, hitInfo.normal, 1.0f);
-
-        // Calculate the lighting considering each point light source.
-        glm::vec3 lighting = glm::vec3{ 0.0f };
-        for (PointLight light : scene.pointLights) {
-            lighting = lighting + light.color * (phongDiffuseOnly(hitInfo, p, light.position) + phongSpecularOnly(hitInfo, p, light.position, ray.origin));
-        }
-        return lighting;
+        return recursiveRayTrace(ray, hitInfo, scene, bvh, 0);
     } else {
         // Draw a red debug ray if the ray missed.
         drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));

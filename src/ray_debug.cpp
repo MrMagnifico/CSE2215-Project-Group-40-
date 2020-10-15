@@ -1,6 +1,5 @@
 #include "ray_debug.h"
 #include "disable_all_warnings.h"
-#include "draw.h"
 // Suppress warnings in third-party code.
 DISABLE_WARNINGS_PUSH()
 #include <glm/geometric.hpp>
