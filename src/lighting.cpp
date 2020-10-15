@@ -47,7 +47,7 @@ glm::vec3 shadeRay(const Ray &ray, const HitInfo &hitInfo, const Scene &scene)
     return lighting;
 }
 
-glm::vec3 recursiveRayTrace(const Ray &intersectionRay, const HitInfo &hitInfo, const Scene &scene, //TODO:Write report section on this feature
+glm::vec3 recursiveRayTrace(const Ray &intersectionRay, const HitInfo &hitInfo, const Scene &scene,
                             const BoundingVolumeHierarchy &bvh, int rayLevel)
 {
     if (rayLevel < RECURSION_LIMIT) //Control recursion level
