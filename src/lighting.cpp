@@ -29,24 +29,44 @@ glm::vec3 phongSpecularOnly(const HitInfo &hitInfo, const glm::vec3 &vertexPos, 
     return hitInfo.material.ks * glm::pow(glm::max(glm::dot(R, V), 0.f), hitInfo.material.shininess);
 }
 
-glm::vec3 lightRay(const Ray &ray, const HitInfo &hitInfo, const Scene &scene)
+glm::vec3 lightRay(const Ray &ray, const HitInfo &hitInfo, const Scene &scene, const BoundingVolumeHierarchy& bvh)
 {
     // Calculate the point of intersection.
     glm::vec3 p = ray.origin + ray.t * ray.direction;
     
     // Draw a blue debug ray if the ray hit.
-    drawRay(ray, glm::vec3(0.0f, 0.0f, 1.0f));
+    drawRay(ray, glm::vec3{ 0.0f, 0.0f, 1.0f });
 
     // Draw a green debug ray for the normal if the ray hit.
     debugRay(p, hitInfo.normal, 1.0f, glm::vec3{ 0.0f, 1.0f, 0.0f });
 
     // Calculate the lighting considering each point light source.
-    glm::vec3 lighting = glm::vec3{0.0f};
+    glm::vec3 lighting = glm::vec3{ 0.0f };
     for (const PointLight& light : scene.pointLights)
     {
-        lighting = lighting + light.color * (phongDiffuseOnly(hitInfo, p, light.position) + phongSpecularOnly(hitInfo, p, light.position, ray.origin));
+        if (!shadowRay(ray, light, bvh)) {
+            lighting = lighting + light.color * (phongDiffuseOnly(hitInfo, p, light.position) + phongSpecularOnly(hitInfo, p, light.position, ray.origin));
+        }
+        //lighting = lighting + light.color * (phongDiffuseOnly(hitInfo, p, light.position) + phongSpecularOnly(hitInfo, p, light.position, ray.origin));
     }
     return lighting;
+}
+
+bool shadowRay(const Ray &ray, const PointLight &light, const BoundingVolumeHierarchy &bvh)
+{
+    // Calculate the point of intersection.
+    glm::vec3 p = ray.origin + ray.t * ray.direction;
+
+    // Draw a yellow debug ray towards the light source.
+    Ray shadowRay = debugRay(p, glm::normalize(light.position - p), glm::length(light.position - p), glm::vec3{ 1.0f, 1.0f, 0.0f });
+
+    // Draw a red debug ray if the shadow ray hits another source.
+    HitInfo hitInfo;
+    if (bvh.intersect(shadowRay, hitInfo)) {
+        drawRay(shadowRay, glm::vec3{ 1.0f, 0.0f, 0.0f });
+        return true;
+    }
+    return false;
 }
 
 glm::vec3 recursiveRayTrace(const Ray &intersectionRay, const HitInfo &hitInfo, const Scene &scene,
@@ -69,10 +89,10 @@ glm::vec3 recursiveRayTrace(const Ray &intersectionRay, const HitInfo &hitInfo, 
             HitInfo newRayInfo;
             if (bvh.intersect(reflection_ray, newRayInfo))
             {   
-                return lightRay(intersectionRay, hitInfo, scene) + (hitInfo.material.ks * recursiveRayTrace(reflection_ray, newRayInfo, scene, bvh, ++rayLevel));
+                return lightRay(intersectionRay, hitInfo, scene, bvh) + (hitInfo.material.ks * recursiveRayTrace(reflection_ray, newRayInfo, scene, bvh, ++rayLevel));
             }
         }
-        return lightRay(intersectionRay, hitInfo, scene);
+        return lightRay(intersectionRay, hitInfo, scene, bvh);
     }
     return glm::vec3{0.0f};
 }
