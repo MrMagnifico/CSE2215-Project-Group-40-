@@ -9,12 +9,11 @@ DISABLE_WARNINGS_POP()
 #include <cmath>
 #include <iostream>
 
-void intersectionNormal(glm::vec3 origin, glm::vec3 direction, float t)
+void debugRay(glm::vec3 origin, glm::vec3 direction, float t, glm::vec3 colour)
 {
 	Ray ray;
 	ray.origin = origin;
 	ray.direction = direction;
 	ray.t = t;
-	glm::vec3 colour{ 1.0f };
 	drawRay(ray, colour);
 }

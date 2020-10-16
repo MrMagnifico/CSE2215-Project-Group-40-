@@ -6,4 +6,4 @@ DISABLE_WARNINGS_PUSH()
 #include <glm/vec3.hpp>
 DISABLE_WARNINGS_POP()
 
-void intersectionNormal(glm::vec3 origin, glm::vec3 direction, float t);
+void debugRay(glm::vec3 origin, glm::vec3 direction, float t, glm::vec3 colour);
