@@ -9,7 +9,7 @@ DISABLE_WARNINGS_POP()
 #include <cmath>
 #include <iostream>
 
-Ray debugRay(glm::vec3 origin, glm::vec3 direction, float t, glm::vec3 colour)
+Ray debugRay(const glm::vec3 &origin, const glm::vec3 &direction, const float &t, const glm::vec3 &colour)
 {
 	Ray ray;
 	ray.origin = origin;
