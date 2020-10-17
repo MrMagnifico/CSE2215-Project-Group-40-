@@ -47,7 +47,6 @@ glm::vec3 lightRay(const Ray &ray, const HitInfo &hitInfo, const Scene &scene, c
         if (!shadowRay(ray, light, bvh)) {
             lighting = lighting + light.color * (phongDiffuseOnly(hitInfo, p, light.position) + phongSpecularOnly(hitInfo, p, light.position, ray.origin));
         }
-        //lighting = lighting + light.color * (phongDiffuseOnly(hitInfo, p, light.position) + phongSpecularOnly(hitInfo, p, light.position, ray.origin));
     }
     return lighting;
 }
