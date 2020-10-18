@@ -1,0 +1,9 @@
+diff a/src/lighting.cpp b/src/lighting.cpp	(rejected hunks)
+@@ -76,6 +76,7 @@
+ //    return result;
+ //}
+ //
++//glm::vec3 softshadow(const HitInfo& hitInfo, const Ray &ray, const Scene &scene) {
+ //
+ //    glm::vec3 p = ray.origin + ray.t * ray.direction;
+ //    glm::vec3 lighting = glm::vec3{ 0.0f };

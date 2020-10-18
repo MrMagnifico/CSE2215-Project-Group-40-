@@ -1,3 +1,5 @@
+#define _USE_MATH_DEFINES
+#include <cmath> 
 #include "lighting.h"
 #include "disable_all_warnings.h"
 // Suppress warnings in third-party code.
@@ -9,6 +11,7 @@ DISABLE_WARNINGS_POP()
 #include <cmath>
 #include <iostream>
 #include <limits>
+
 
 const int RECURSION_LIMIT = 5; // Defines the maximal level of recursion to use.
 const float RECURSIVE_RAY_STEP = 1.0e-3f;
@@ -29,6 +32,65 @@ glm::vec3 phongSpecularOnly(const HitInfo &hitInfo, const glm::vec3 &vertexPos, 
     return hitInfo.material.ks * glm::pow(glm::max(glm::dot(R, V), 0.f), hitInfo.material.shininess);
 }
 
+std::vector<glm::vec3> randomPointOnSphere(const SphericalLight sphere, const int amount) {
+    //using fibonacci sequence calculate a vector of unifromly distributed points on the sphere
+    std::vector<glm::vec3> uniformPoints; 
+    float phi = M_PI * (3.0 - sqrt(5.0));
+
+    for (int i = 0; i < amount; i++) {
+        float y = 1 - (i / float(amount - 1)) * 2; 
+        float radius = sqrt(1 - pow(y, 2)); 
+        float theta = phi * i; 
+        float x = cos(theta) * radius; 
+        float z = sin(theta) * radius; 
+
+        //Multiply by the sphere of the radius to scale to any given sphere
+        x *= sphere.radius;
+        y *= sphere.radius;
+        z *= sphere.radius;
+        glm::vec3 randPoint = { x, y, z };
+        //Add the sphere position to move to any given spheres position
+        randPoint += sphere.position;
+        uniformPoints.push_back(randPoint); 
+    }
+    return uniformPoints;
+}
+
+//Check if the generated points are on the backside of the sphere. 
+bool checkRightHalf(const SphericalLight sphere, glm::vec3 point, float distanceOfRay) {
+    
+    glm::vec3 centerToP = sphere.position - point; 
+    float lengthOfCenterToP = sqrt(pow(centerToP.x, 2) + pow(centerToP.y, 2) + pow(centerToP.z, 2));
+    float c = pow(lengthOfCenterToP, 2) + pow(sphere.radius, 2);
+    c = sqrt(c); 
+    if (c <= distanceOfRay) return true; 
+    return false; 
+}
+
+float softShadow(const HitInfo& hitInfo, const Ray& ray, const SphericalLight& light) {
+    //float FactorSize = 1.0f; 
+    //float shadeFactor = 1.0f;
+    glm::vec3 p = ray.origin + ray.t * ray.direction;
+
+    for (glm::vec3 x : randomPointOnSphere(light, 10)) {
+        Ray lightray;
+        glm::vec3 p = (ray.origin + ray.direction * ray.t);
+        lightray.direction = -(x - p);
+        lightray.origin = x;
+        glm::vec3 lr = x - p;
+        lightray.t = sqrt(pow(lr.x, 2) + pow(lr.y, 2) + pow(lr.z, 2));
+        if (checkRightHalf(light, p, lightray.t)) {
+            drawRay(lightray, glm::vec3(0.0f, 0.0f, 1.0f));
+        }
+
+        //glm::vec3 lightRayVec = lightray.origin + lightray.direction * lightray.t;
+
+        //shadeFactor -= FactorSize;
+
+    }
+    return 0.0f;
+}
+
 glm::vec3 lightRay(const Ray &ray, const HitInfo &hitInfo, const Scene &scene)
 {
     // Calculate the point of intersection.
@@ -46,6 +108,11 @@ glm::vec3 lightRay(const Ray &ray, const HitInfo &hitInfo, const Scene &scene)
     {
         lighting = lighting + light.color * (phongDiffuseOnly(hitInfo, p, light.position) + phongSpecularOnly(hitInfo, p, light.position, ray.origin));
     }
+    
+    for (const SphericalLight& light : scene.sphericalLight)
+    {
+        lighting = lighting + light.color * softShadow(hitInfo, ray, light);
+        }
     return lighting;
 }
 
@@ -76,3 +143,5 @@ glm::vec3 recursiveRayTrace(const Ray &intersectionRay, const HitInfo &hitInfo, 
     }
     return glm::vec3{0.0f};
 }
+
+
