@@ -1,5 +1,3 @@
-#define _USE_MATH_DEFINES
-#include <cmath>
 #include "lighting.h"
 #include "disable_all_warnings.h"
 // Suppress warnings in third-party code.
@@ -7,13 +5,15 @@ DISABLE_WARNINGS_PUSH()
 #include <glm/geometric.hpp>
 #include <glm/gtx/component_wise.hpp>
 #include <glm/vector_relational.hpp>
+#include <glm/gtc/constants.hpp>
 DISABLE_WARNINGS_POP()
 #include <cmath>
 #include <iostream>
 #include <limits>
 
-const int RECURSION_LIMIT = 5;  // Defines the maximal level of recursion to use.
-const float RAY_STEP = 1.0e-3f; // Defines the 'step' to take in a ray's direction to prevent erroneous intersections.
+const int RECURSION_LIMIT = 5;      // Defines the maximal level of recursion to use.
+const float RAY_STEP = 1.0e-3f;     // Defines the 'step' to take in a ray's direction to prevent erroneous intersections.
+const int SPHERE_SAMPLE_LIMIT = 10; // Defines the maximal number of samples to compute when sampling a spherical light source.
 
 glm::vec3 phongDiffuseOnly(const HitInfo &hitInfo, const glm::vec3 &vertexPos, const glm::vec3 &lightPos)
 {
@@ -33,31 +33,31 @@ glm::vec3 phongSpecularOnly(const HitInfo &hitInfo, const glm::vec3 &vertexPos, 
 
 std::vector<glm::vec3> randomPointOnSphere(const SphericalLight &sphere, const int &amount)
 {
-    //using fibonacci sequence calculate a vector of unifromly distributed points on the sphere
+    // Use fibonacci sequence to calculate a vector of unifromly distributed points on the sphere.
     std::vector<glm::vec3> uniformPoints;
-    float phi = M_PI * (3.0 - sqrt(5.0));
+    float phi = glm::pi<float>() * (3.0f - sqrt(5.0f));
 
     for (int i = 0; i < amount; i++)
     {
-        float y = 1 - (i / float(amount - 1)) * 2;
-        float radius = sqrt(1 - pow(y, 2));
+        float y = 1.0f - (i / float(amount - 1)) * 2.0f;
+        float radius = sqrt(1.0f - pow(y, 2));
         float theta = phi * i;
         float x = cos(theta) * radius;
         float z = sin(theta) * radius;
 
-        //Multiply by the sphere of the radius to scale to any given sphere
+        // Multiply by the sphere of the radius to scale to any given sphere.
         x *= sphere.radius;
         y *= sphere.radius;
         z *= sphere.radius;
         glm::vec3 randPoint = {x, y, z};
-        //Add the sphere position to move to any given spheres position
+        // Add the sphere position to move to any given spheres position
         randPoint += sphere.position;
         uniformPoints.push_back(randPoint);
     }
     return uniformPoints;
 }
 
-bool checkRightHalf(const SphericalLight &sphere, const glm::vec3 &point, float distanceOfRay)
+bool checkRightHalf(const SphericalLight &sphere, const glm::vec3 &point, const float &distanceOfRay)
 {
     glm::vec3 centerToP = sphere.position - point;
     float lengthOfCenterToP = sqrt(pow(centerToP.x, 2) + pow(centerToP.y, 2) + pow(centerToP.z, 2));
@@ -68,30 +68,26 @@ bool checkRightHalf(const SphericalLight &sphere, const glm::vec3 &point, float 
     return false;
 }
 
-float softShadow(const HitInfo &hitInfo, const Ray &ray, const SphericalLight &light)
+glm::vec3 softShadow(const HitInfo &hitInfo, const Ray &ray, const SphericalLight &light, const BoundingVolumeHierarchy &bvh)
 {
-    //float FactorSize = 1.0f;
-    //float shadeFactor = 1.0f;
-    glm::vec3 p = ray.origin + ray.t * ray.direction;
-
-    for (glm::vec3 x : randomPointOnSphere(light, 10))
+    int valid_samples = 0;
+    glm::vec3 final_lighting = {0.0f, 0.0f, 0.0f};
+    std::vector<glm::vec3> sample_points = randomPointOnSphere(light, SPHERE_SAMPLE_LIMIT);
+    for (glm::vec3 point_position : sample_points)
     {
-        Ray lightray;
-        glm::vec3 p = (ray.origin + ray.direction * ray.t);
-        lightray.direction = -(x - p);
-        lightray.origin = x;
-        glm::vec3 lr = x - p;
-        lightray.t = sqrt(pow(lr.x, 2) + pow(lr.y, 2) + pow(lr.z, 2));
-        if (checkRightHalf(light, p, lightray.t))
+        glm::vec3 intersection_point = ray.origin + (ray.t * ray.direction);
+        float intersection_to_point_dist = glm::distance(point_position, intersection_point);
+        if (!checkRightHalf(light, point_position, intersection_to_point_dist)) {continue;}
+
+        PointLight point_sample = {point_position, light.color};
+        if (!shadowRay(ray, point_sample, bvh))
         {
-            drawRay(lightray, glm::vec3(0.0f, 0.0f, 1.0f));
-        }
-
-        //glm::vec3 lightRayVec = lightray.origin + lightray.direction * lightray.t;
-
-        //shadeFactor -= FactorSize;
+            valid_samples++;
+            final_lighting += (phongDiffuseOnly(hitInfo, intersection_point, point_position) + phongSpecularOnly(hitInfo, intersection_point, point_position, ray.origin));
+        };
     }
-    return 0.0f;
+    if (valid_samples == 0) {return final_lighting;}
+    return final_lighting * (1.0f / float(valid_samples));
 }
 
 glm::vec3 lightRay(const Ray &ray, const HitInfo &hitInfo, const Scene &scene, const BoundingVolumeHierarchy &bvh)
@@ -114,10 +110,9 @@ glm::vec3 lightRay(const Ray &ray, const HitInfo &hitInfo, const Scene &scene, c
             lighting = lighting + light.color * (phongDiffuseOnly(hitInfo, p, light.position) + phongSpecularOnly(hitInfo, p, light.position, ray.origin));
         }
     }
-
     for (const SphericalLight &light : scene.sphericalLight)
     {
-        lighting = lighting + light.color * softShadow(hitInfo, ray, light);
+        lighting = lighting + light.color * softShadow(hitInfo, ray, light, bvh);
     }
     return lighting;
 }

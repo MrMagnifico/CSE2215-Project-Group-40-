@@ -13,9 +13,9 @@ glm::vec3 phongSpecularOnly(const HitInfo &hitInfo, const glm::vec3 &vertexPos, 
 std::vector<glm::vec3> randomPointOnSphere(const SphericalLight &sphere, const int &amount);
 
 //Check if the generated points are on the backside of the sphere.
-bool checkRightHalf(const SphericalLight &sphere, const glm::vec3 &point, float distanceOfRay);
+bool checkRightHalf(const SphericalLight &sphere, const glm::vec3 &point, const float &distanceOfRay);
 
-float softShadow(const HitInfo &hitInfo, const Ray &ray, const SphericalLight &light);
+glm::vec3 softShadow(const HitInfo &hitInfo, const Ray &ray, const SphericalLight &light, const BoundingVolumeHierarchy &bvh);
 
 // Returns a vector representing the RGB values computed by the Phong reflection model.
 glm::vec3 lightRay(const Ray &ray, const HitInfo &hitInfo, const Scene &scene, const BoundingVolumeHierarchy &bvh);
