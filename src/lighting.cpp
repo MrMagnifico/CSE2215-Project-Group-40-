@@ -13,7 +13,7 @@ DISABLE_WARNINGS_POP()
 
 const int RECURSION_LIMIT = 5;      // Defines the maximal level of recursion to use.
 const float RAY_STEP = 1.0e-3f;     // Defines the 'step' to take in a ray's direction to prevent erroneous intersections.
-const int SPHERE_SAMPLE_LIMIT = 10; // Defines the maximal number of samples to compute when sampling a spherical light source.
+const int SPHERE_SAMPLE_LIMIT = 100; // Defines the maximal number of samples to compute when sampling a spherical light source.
 
 glm::vec3 phongDiffuseOnly(const HitInfo &hitInfo, const glm::vec3 &vertexPos, const glm::vec3 &lightPos)
 {
@@ -35,15 +35,15 @@ std::vector<glm::vec3> randomPointOnSphere(const SphericalLight &sphere, const i
 {
     // Use fibonacci sequence to calculate a vector of unifromly distributed points on the sphere.
     std::vector<glm::vec3> uniformPoints;
-    float phi = glm::pi<float>() * (3.0f - sqrt(5.0f));
+    float phi = glm::pi<float>() * (3.0f - sqrtf(5.0f));
 
     for (int i = 0; i < amount; i++)
     {
         float y = 1.0f - (i / float(amount - 1)) * 2.0f;
-        float radius = sqrt(1.0f - pow(y, 2));
+        float radius = sqrtf(1.0f - powf(y, 2));
         float theta = phi * i;
-        float x = cos(theta) * radius;
-        float z = sin(theta) * radius;
+        float x = cosf(theta) * radius;
+        float z = sinf(theta) * radius;
 
         // Multiply by the sphere of the radius to scale to any given sphere.
         x *= sphere.radius;
@@ -60,9 +60,9 @@ std::vector<glm::vec3> randomPointOnSphere(const SphericalLight &sphere, const i
 bool checkRightHalf(const SphericalLight &sphere, const glm::vec3 &point, const float &distanceOfRay)
 {
     glm::vec3 centerToP = sphere.position - point;
-    float lengthOfCenterToP = sqrt(pow(centerToP.x, 2) + pow(centerToP.y, 2) + pow(centerToP.z, 2));
-    float c = pow(lengthOfCenterToP, 2) + pow(sphere.radius, 2);
-    c = sqrt(c);
+    float lengthOfCenterToP = sqrtf(powf(centerToP.x, 2) + powf(centerToP.y, 2) + powf(centerToP.z, 2));
+    float c = powf(lengthOfCenterToP, 2) + powf(sphere.radius, 2);
+    c = sqrtf(c);
     if (c <= distanceOfRay)
         return true;
     return false;
@@ -70,7 +70,6 @@ bool checkRightHalf(const SphericalLight &sphere, const glm::vec3 &point, const 
 
 glm::vec3 softShadow(const HitInfo &hitInfo, const Ray &ray, const SphericalLight &light, const BoundingVolumeHierarchy &bvh)
 {
-    int valid_samples = 0;
     glm::vec3 final_lighting = {0.0f, 0.0f, 0.0f};
     std::vector<glm::vec3> sample_points = randomPointOnSphere(light, SPHERE_SAMPLE_LIMIT);
     for (glm::vec3 point_position : sample_points)
@@ -82,12 +81,10 @@ glm::vec3 softShadow(const HitInfo &hitInfo, const Ray &ray, const SphericalLigh
         PointLight point_sample = {point_position, light.color};
         if (!shadowRay(ray, point_sample, bvh))
         {
-            valid_samples++;
             final_lighting += (phongDiffuseOnly(hitInfo, intersection_point, point_position) + phongSpecularOnly(hitInfo, intersection_point, point_position, ray.origin));
         };
     }
-    if (valid_samples == 0) {return final_lighting;}
-    return final_lighting * (1.0f / float(valid_samples));
+    return final_lighting * (1.0f / float(SPHERE_SAMPLE_LIMIT));
 }
 
 glm::vec3 lightRay(const Ray &ray, const HitInfo &hitInfo, const Scene &scene, const BoundingVolumeHierarchy &bvh)
