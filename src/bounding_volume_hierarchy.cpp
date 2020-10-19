@@ -1,11 +1,14 @@
 #include "bounding_volume_hierarchy.h"
 #include "draw.h"
+#include <glm/vector_relational.hpp>
+#include <limits>
 
-BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
+BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene, int maxLevel, int binNum)
     : m_pScene(pScene)
 {
-
-    // as an example of how to iterate over all meshes in the scene, look at the intersect method below
+    max_level = maxLevel;
+    bin_num = binNum;
+    root_node = constructNode(*pScene, 0);
 }
 
 // Use this function to visualize your BVH. This can be useful for debugging. Use the functions in
@@ -13,7 +16,6 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene* pScene)
 // mode, arbitrary colors and transparency.
 void BoundingVolumeHierarchy::debugDraw(int level)
 {
-
     // Draw the AABB as a transparent green box.
     //AxisAlignedBox aabb{ glm::vec3(-0.05f), glm::vec3(0.05f, 1.05f, 1.05f) };
     //drawShape(aabb, DrawMode::Filled, glm::vec3(0.0f, 1.0f, 0.0f), 0.2f);
@@ -52,4 +54,49 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo) const
     for (const auto& sphere : m_pScene->spheres)
         hit |= intersectRayWithShape(sphere, ray, hitInfo);
     return hit;
+}
+
+BVHNode BoundingVolumeHierarchy::constructNode(Scene &scene, int axis_selector, int current_level)
+{
+    // Define and alternate axis to split on.
+    glm::vec3 comparison_axis = (axis_selector % 2 == 0) ? glm::vec3{1.0f, 0.0f, 0.0f} : glm::vec3{0.0f, 1.0f, 0.0f};
+    glm::vec3 other_axis = (axis_selector % 2 == 1) ? glm::vec3{1.0f, 0.0f, 0.0f} : glm::vec3{0.0f, 1.0f, 0.0f};
+
+    // Compute borders of the axes.
+    std::pair<glm::vec3, glm::vec3> comparison_limits = {
+        glm::vec3{std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max()} * comparison_axis,
+        glm::vec3{std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min()} * comparison_axis};
+    std::pair<glm::vec3, glm::vec3> other_limits = {
+        glm::vec3{std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max()} * other_axis,
+        glm::vec3{std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min()} * other_axis};
+    for (Mesh &mesh : scene.meshes)
+    {
+        for (Triangle &triangle : mesh.triangles)
+        {
+            for (int counter = 0; counter < 3; counter++)
+            {
+                glm::vec3 vertex_pos = mesh.vertices[triangle[counter]].p;
+                //TODO: finish border computation
+            }
+        }
+    } 
+
+    if (current_level < --max_level) // Control hierarchy depth.
+    {
+
+    }
+
+    /////////////////////////////////////////////////////////
+
+    // Create leaf node from given scene vertices.
+    std::vector<Vertex> bvh_vertices;
+    for (Mesh &mesh : scene.meshes)
+    {
+        for (Triangle &triangle : mesh.triangles)
+        {
+            bvh_vertices.push_back(mesh.vertices[triangle[0]]);
+            bvh_vertices.push_back(mesh.vertices[triangle[1]]);
+            bvh_vertices.push_back(mesh.vertices[triangle[2]]);
+        }
+    } 
 }
