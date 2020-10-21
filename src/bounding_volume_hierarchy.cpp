@@ -2,7 +2,7 @@
 #include "draw.h"
 #include <glm/vector_relational.hpp>
 #include <limits>
-#include <iostream>
+#include <iostream> //FOR DEBUGGING
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene *pScene, int max_level, int bin_num)
     : m_pScene(pScene)
@@ -80,30 +80,28 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo) const
 int BoundingVolumeHierarchy::constructNode(Scene &scene, std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices, int current_level)
 {
     std::vector<std::pair<float, float>> limits = computeBoundingBoxLimits(scene, meshTriangleIndices);
+    AxisAlignedBox node_box = {
+            glm::vec3{limits[0].first, limits[1].first, limits[2].first},
+            glm::vec3{limits[0].second, limits[1].second, limits[2].second}};
     int new_node_index = nodeVector.size();
+    BVHNode constructed_node;
 
     if (current_level < maxLevel)
     {
         // Construct inner node if applicable.
         std::pair<std::vector<std::pair<int, std::vector<int>>>, std::vector<std::pair<int, std::vector<int>>>> child_triangle_meshes
         = computeOptimalSplit(scene, meshTriangleIndices, limits, current_level);
-
-        AxisAlignedBox node_box = {
-            glm::vec3{limits[0].first, limits[1].first, limits[2].first},
-            glm::vec3{limits[0].second, limits[1].second, limits[2].second}};
-        BVHNode constructed_node = {
+        constructed_node = {
             node_box,
             false,
             current_level,
-            std::pair<int, int>{constructNode(scene, child_triangle_meshes.first, current_level + 1), constructNode(scene, child_triangle_meshes.second, current_level + 1)},
+            std::pair<int, int>{},
             std::vector<std::pair<int, std::vector<int>>>{}};
         nodeVector.push_back(constructed_node);
+        constructed_node.nodeChildrenIndices = {constructNode(scene, child_triangle_meshes.first, current_level + 1), constructNode(scene, child_triangle_meshes.second, current_level + 1)};
     } else {
         // Construct leaf node if maxLevel reached.
-        AxisAlignedBox node_box = {
-        glm::vec3{limits[0].first, limits[1].first, limits[2].first},
-        glm::vec3{limits[0].second, limits[1].second, limits[2].second}};
-        BVHNode constructed_node = {node_box, true, current_level, std::pair<int, int>{}, meshTriangleIndices};
+        constructed_node = {node_box, true, current_level, std::pair<int, int>{}, meshTriangleIndices};
         nodeVector.push_back(constructed_node);
     }
     return new_node_index;
@@ -145,78 +143,57 @@ std::pair<std::vector<std::pair<int, std::vector<int>>>, std::vector<std::pair<i
 BoundingVolumeHierarchy::computeOptimalSplit(Scene &scene, std::vector<std::pair<int, std::vector<int>>> meshTriangleIndices,
                                              std::vector<std::pair<float, float>> limits, int current_level)
 {
+    std::cout << "----Node at level " << current_level << std::endl; //FOR DEBUGGING
+
     // Define and alternate axis to split on.
     int comparison_axis = current_level % 3;
-    int secondary_axis = (current_level + 1) % 3;
-        
-    // Compute atomic bin area (smallest area permissible by binNum).
-    float comparison_edge_length = limits[comparison_axis].second - limits[comparison_axis].first;
-    float secondary_edge_length = limits[secondary_axis].second - limits[secondary_axis].first;
-    float atomic_bin_area = (comparison_edge_length * secondary_edge_length) / binNum;
 
-    float min_bin_cost = std::numeric_limits<float>::max();
     std::pair<std::vector<std::pair<int, std::vector<int>>>, std::vector<std::pair<int, std::vector<int>>>> left_right_split_indices;
-    for (int bin = 1; bin < binNum; bin++)
+    float split_boundary = (limits[comparison_axis].first + limits[comparison_axis].second) / 2.0f;
+
+    // Create vectors to store LHS and RHS mesh-triangle indices.
+    std::vector<std::pair<int, std::vector<int>>> lhs_indices;
+    std::vector<std::pair<int, std::vector<int>>> rhs_indices;
+
+    // Compute which triangles belong in which side of the bin.
+    for (std::pair<int, std::vector<int>> &coordinate_pair : meshTriangleIndices)
     {
-        float lhs_area = atomic_bin_area * bin;
-        float rhs_area = atomic_bin_area * (binNum - bin);
-        float split_boundary = limits[comparison_axis].first + (comparison_edge_length * (bin / binNum)); // 'Walk' an appropriate distance from the comparison axis' min. coordinate.
-
-        int left_triangle_count = 0;
-        int right_triangle_count = 0;
-
-        // Create vectors to store LHS and RHS mesh-triangle indices.
-        std::vector<std::pair<int, std::vector<int>>> lhs_indices;
-        std::vector<std::pair<int, std::vector<int>>> rhs_indices;
-
-        // Compute which triangles belong in which side of the bin.
-        for (std::pair<int, std::vector<int>> &coordinate_pair : meshTriangleIndices)
-        {
-            // Create an empty vector for the current mesh for each corresponding split vector.
-            Mesh &current_mesh = scene.meshes[coordinate_pair.first];
-            std::pair<int, std::vector<int>> lhs_mesh_indices = {coordinate_pair.first, std::vector<int>{}};
-            std::pair<int, std::vector<int>> rhs_mesh_indices = {coordinate_pair.first, std::vector<int>{}};
+        // Create an empty vector for the current mesh for each corresponding split vector.
+        Mesh &current_mesh = scene.meshes[coordinate_pair.first];
+        std::pair<int, std::vector<int>> lhs_mesh_indices = {coordinate_pair.first, std::vector<int>{}};
+        std::pair<int, std::vector<int>> rhs_mesh_indices = {coordinate_pair.first, std::vector<int>{}};
             
-            // Populate the triangle index vector for the current mesh appropriately for each split vector.
-            for (int triangle_index : coordinate_pair.second)
-            {
-                Triangle &current_triangle = current_mesh.triangles[triangle_index];
-                int position_info = checkTriangleBorderSide(scene, current_mesh, current_triangle, comparison_axis, split_boundary);
-
-                switch (position_info) {
-                    case 0:
-                        left_triangle_count++;
-                        lhs_mesh_indices.second.push_back(triangle_index);
-                        break;
-                    case 1:
-                        right_triangle_count++;
-                        rhs_mesh_indices.second.push_back(triangle_index);
-                        break;
-                    case 2:
-                        left_triangle_count++;
-                        lhs_mesh_indices.second.push_back(triangle_index);
-                        right_triangle_count++;
-                        rhs_mesh_indices.second.push_back(triangle_index);
-                        break;
-                }
-            }
-
-            // Add indices of this mesh's triangles to mesh-triangle indices vectors.
-            lhs_indices.push_back(lhs_mesh_indices);
-            rhs_indices.push_back(rhs_mesh_indices);
-        }
-
-        // Assess cost function and utilise or dispose of bin appropriately.
-        float cost = (traversalCost) + (lhs_area * left_triangle_count * triangleIntersectionCost) + (rhs_area * right_triangle_count * triangleIntersectionCost);
-        if (cost < min_bin_cost)
+        // Populate the triangle index vector for the current mesh appropriately for each split vector.
+        for (int triangle_index : coordinate_pair.second)
         {
-            min_bin_cost = cost;
-            left_right_split_indices.first = lhs_indices;
-            left_right_split_indices.second = rhs_indices;
-        }
-        std::cout << "Bin: " << bin << " - Cost: " << cost << std::endl; //FOR DEBUGGING
-    }
+            Triangle &current_triangle = current_mesh.triangles[triangle_index];
+            int position_info = checkTriangleBorderSide(scene, current_mesh, current_triangle, comparison_axis, split_boundary);
 
+            switch (position_info)
+            {
+                case 0:
+                    lhs_mesh_indices.second.push_back(triangle_index);
+                    std::cout << "LHS triangle index: " << triangle_index << std::endl; //FOR DEBUGGING
+                    break;
+                case 1:
+                    rhs_mesh_indices.second.push_back(triangle_index);
+                    std::cout << "RHS triangle index: " << triangle_index << std::endl; //FOR DEBUGGING
+                    break;
+                case 2:
+                    lhs_mesh_indices.second.push_back(triangle_index);
+                    rhs_mesh_indices.second.push_back(triangle_index);
+                    std::cout << "LHS triangle index: " << triangle_index << std::endl; //FOR DEBUGGING
+                    std::cout << "RHS triangle index: " << triangle_index << std::endl; //FOR DEBUGGING
+                    break;
+            }
+        }
+
+        // Add indices of this mesh's triangles to mesh-triangle indices vectors.
+        lhs_indices.push_back(lhs_mesh_indices);
+        rhs_indices.push_back(rhs_mesh_indices);
+    }
+    left_right_split_indices.first = lhs_indices;
+    left_right_split_indices.second = rhs_indices;
     return left_right_split_indices;
 }
 
