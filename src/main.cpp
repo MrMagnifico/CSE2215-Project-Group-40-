@@ -27,6 +27,9 @@ DISABLE_WARNINGS_POP()
 #include <omp.h>
 #endif
 
+const int BVH_DEPTH = 5;
+const int BVH_MAX_BINS = 4;
+
 // This is the main application. The code in here does not need to be modified.
 constexpr glm::ivec2 windowResolution { 800, 800 };
 const std::filesystem::path dataPath { DATA_DIR };
@@ -88,7 +91,7 @@ int main(int argc, char** argv)
     SceneType sceneType { SceneType::SingleTriangle };
     std::optional<Ray> optDebugRay;
     Scene scene = loadScene(sceneType, dataPath);
-    BoundingVolumeHierarchy bvh { &scene };
+    BoundingVolumeHierarchy bvh {&scene, BVH_DEPTH, BVH_MAX_BINS};
 
     int bvhDebugLevel = 0;
     bool debugBVH { false };
@@ -121,7 +124,7 @@ int main(int argc, char** argv)
             if (ImGui::Combo("Scenes", reinterpret_cast<int*>(&sceneType), items.data(), int(items.size()))) {
                 optDebugRay.reset();
                 scene = loadScene(sceneType, dataPath);
-                bvh = BoundingVolumeHierarchy(&scene);
+                bvh = BoundingVolumeHierarchy(&scene, BVH_DEPTH, BVH_MAX_BINS);
                 if (optDebugRay) {
                     HitInfo dummy {};
                     bvh.intersect(*optDebugRay, dummy);
@@ -148,7 +151,7 @@ int main(int argc, char** argv)
         if (viewMode == ViewMode::Rasterization) {
             ImGui::Checkbox("Draw BVH", &debugBVH);
             if (debugBVH)
-                ImGui::SliderInt("BVH Level", &bvhDebugLevel, 0, bvh.numLevels() - 1);
+                ImGui::SliderInt("BVH Level", &bvhDebugLevel, 1, bvh.numLevels());
         }
 
         ImGui::Spacing();
