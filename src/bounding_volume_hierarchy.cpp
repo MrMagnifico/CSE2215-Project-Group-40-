@@ -2,19 +2,18 @@
 #include "draw.h"
 #include <glm/vector_relational.hpp>
 #include <limits>
-#include <iostream> //FOR DEBUGGING
 
-BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene *pScene, int max_level, int bin_num)
+BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene *pScene, int max_level, int min_triangles)
     : m_pScene(pScene)
 {
     maxLevel = max_level;
-    binNum = bin_num;
+    minTriangles = min_triangles;
 
     // Construct indices for all triangles and construct parent node.
     std::vector<std::pair<int, std::vector<int>>> all_mesh_triangle_indices;
     for (int mesh_index = 0; mesh_index < pScene->meshes.size(); mesh_index++)
     {
-        Mesh& curr_mesh = pScene->meshes[mesh_index];
+        Mesh &curr_mesh = pScene->meshes[mesh_index];
         std::pair<int, std::vector<int>> mesh_triangle_pairs = {mesh_index, std::vector<int>{}};
         for (int triangle_index = 0; triangle_index < curr_mesh.triangles.size(); triangle_index++)
         {
@@ -27,24 +26,18 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene *pScene, int max_level, i
 
 void BoundingVolumeHierarchy::debugDraw(int level)
 {
-    for (BVHNode node : nodeVector)
+    for (BVHNode &node : nodeVector)
     {
-        if (node.level == level)
-        {
-            drawAABB(node.boundingBox, DrawMode::Wireframe);
-        }
+        if (node.level == level) {drawAABB(node.boundingBox, DrawMode::Wireframe);}
     }
 }
 
-int BoundingVolumeHierarchy::numLevels() const
+int BoundingVolumeHierarchy::numLevels()
 {
     int max_level = 1;
-    for (BVHNode node : nodeVector)
+    for (BVHNode &node : nodeVector)
     {
-        if (node.level > max_level)
-        {
-            max_level = node.level;
-        }
+        if (node.level > max_level) {max_level = node.level;}
     }
     return max_level;
 }
@@ -77,13 +70,14 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo) const
 int BoundingVolumeHierarchy::constructNode(Scene &scene, std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices, int current_level)
 {
     std::vector<std::pair<float, float>> limits = computeBoundingBoxLimits(scene, meshTriangleIndices);
+    int num_triangles = countTriangles(scene, meshTriangleIndices);
     AxisAlignedBox node_box = {
             glm::vec3{limits[0].first, limits[1].first, limits[2].first},
             glm::vec3{limits[0].second, limits[1].second, limits[2].second}};
     int new_node_index = nodeVector.size();
     BVHNode constructed_node;
 
-    if (current_level < maxLevel)
+    if (current_level < maxLevel && num_triangles >= minTriangles)
     {
         // Construct inner node if applicable.
         std::pair<std::vector<std::pair<int, std::vector<int>>>, std::vector<std::pair<int, std::vector<int>>>> child_triangle_meshes
@@ -97,7 +91,7 @@ int BoundingVolumeHierarchy::constructNode(Scene &scene, std::vector<std::pair<i
         nodeVector.push_back(constructed_node);
         constructed_node.nodeChildrenIndices = {constructNode(scene, child_triangle_meshes.first, current_level + 1), constructNode(scene, child_triangle_meshes.second, current_level + 1)};
     } else {
-        // Construct leaf node if maxLevel reached.
+        // Construct leaf node if maxLevel reached or number of triangles is below minimum.
         constructed_node = {node_box, true, current_level, std::pair<int, int>{}, meshTriangleIndices};
         nodeVector.push_back(constructed_node);
     }
@@ -113,10 +107,10 @@ std::vector<std::pair<float, float>> BoundingVolumeHierarchy::computeBoundingBox
         std::pair<float, float>{std::numeric_limits<float>::max(), std::numeric_limits<float>::min()}};
     for (std::pair<int, std::vector<int>> &coordinate_pairs : meshTriangleIndices)
     {
-        Mesh& current_mesh = scene.meshes[coordinate_pairs.first];
+        Mesh &current_mesh = scene.meshes[coordinate_pairs.first];
         for (int triangle_index : coordinate_pairs.second)
         {
-            Triangle current_triangle = current_mesh.triangles[triangle_index];
+            Triangle &current_triangle = current_mesh.triangles[triangle_index];
             std::vector<Vertex> vertices = {
                 current_mesh.vertices[current_triangle[0]],
                 current_mesh.vertices[current_triangle[1]],
@@ -137,11 +131,9 @@ std::vector<std::pair<float, float>> BoundingVolumeHierarchy::computeBoundingBox
 }
 
 std::pair<std::vector<std::pair<int, std::vector<int>>>, std::vector<std::pair<int, std::vector<int>>>>
-BoundingVolumeHierarchy::computeOptimalSplit(Scene &scene, std::vector<std::pair<int, std::vector<int>>> meshTriangleIndices,
-                                             std::vector<std::pair<float, float>> limits, int current_level)
+BoundingVolumeHierarchy::computeOptimalSplit(Scene &scene, std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices,
+                                             std::vector<std::pair<float, float>> &limits, int current_level)
 {
-    std::cout << "----Node at level " << current_level << std::endl; //FOR DEBUGGING
-
     // Define and alternate axis to split on.
     int comparison_axis = current_level % 3;
 
@@ -170,17 +162,13 @@ BoundingVolumeHierarchy::computeOptimalSplit(Scene &scene, std::vector<std::pair
             {
                 case 0:
                     lhs_mesh_indices.second.push_back(triangle_index);
-                    std::cout << "LHS triangle index: " << triangle_index << std::endl; //FOR DEBUGGING
                     break;
                 case 1:
                     rhs_mesh_indices.second.push_back(triangle_index);
-                    std::cout << "RHS triangle index: " << triangle_index << std::endl; //FOR DEBUGGING
                     break;
                 case 2:
                     lhs_mesh_indices.second.push_back(triangle_index);
                     rhs_mesh_indices.second.push_back(triangle_index);
-                    std::cout << "LHS triangle index: " << triangle_index << std::endl; //FOR DEBUGGING
-                    std::cout << "RHS triangle index: " << triangle_index << std::endl; //FOR DEBUGGING
                     break;
             }
         }
@@ -208,4 +196,11 @@ int BoundingVolumeHierarchy::checkTriangleBorderSide(Scene &scene, Mesh &mesh, T
     if (!isLeft && !isRight) {return 2;}
     else if (isRight) {return 1;}
     else {return 0;}
+}
+
+int BoundingVolumeHierarchy::countTriangles(Scene &scene, std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices)
+{
+    int triangle_count = 0;
+    for (std::pair<int, std::vector<int>> &coordinate_pair : meshTriangleIndices) {triangle_count += coordinate_pair.second.size();}
+    return triangle_count;
 }

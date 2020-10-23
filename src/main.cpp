@@ -28,7 +28,7 @@ DISABLE_WARNINGS_POP()
 #endif
 
 const int BVH_DEPTH = 5;
-const int BVH_MAX_BINS = 4;
+const int BVH_MIN_NODE_TRIANGLES = 25;
 
 // This is the main application. The code in here does not need to be modified.
 constexpr glm::ivec2 windowResolution { 800, 800 };
@@ -88,7 +88,7 @@ int main(int argc, char** argv)
     SceneType sceneType { SceneType::SingleTriangle };
     std::optional<Ray> optDebugRay;
     Scene scene = loadScene(sceneType, dataPath);
-    BoundingVolumeHierarchy bvh {&scene, BVH_DEPTH, BVH_MAX_BINS};
+    BoundingVolumeHierarchy bvh {&scene, BVH_DEPTH, BVH_MIN_NODE_TRIANGLES};
 
     int bvhDebugLevel = 0;
     bool debugBVH { false };
@@ -121,7 +121,7 @@ int main(int argc, char** argv)
             if (ImGui::Combo("Scenes", reinterpret_cast<int*>(&sceneType), items.data(), int(items.size()))) {
                 optDebugRay.reset();
                 scene = loadScene(sceneType, dataPath);
-                bvh = BoundingVolumeHierarchy(&scene, BVH_DEPTH, BVH_MAX_BINS);
+                bvh = BoundingVolumeHierarchy(&scene, BVH_DEPTH, BVH_MIN_NODE_TRIANGLES);
                 if (optDebugRay) {
                     HitInfo dummy {};
                     bvh.intersect(*optDebugRay, dummy);
