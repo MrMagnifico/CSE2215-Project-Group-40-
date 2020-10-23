@@ -59,6 +59,24 @@
 
         The recursive ray tracer debug, showing two total rays in the recursive chain, along with their normals
     \end{center}
+    \subsubsection{Soft Shadows}
+    The first step to the implementing the soft shadows is to generate uniformly distributed rays from the spherical light source. 
+    In order, to get a uniform distribution of rays from the lightsource, the idea of the fibonacci sequence was used, by generating unifromly distributed 
+    step sizes using the golden ratio. The second problem, was to remove light rays
+    from the 'wrong' side of the light source, this was done by using the center of the sphere and radius to calculate the longest the light ray on the 'right' side could be.
+    So, by using this method we are able to check each randomly generated sample of the light. Finally, a number of sample points are taken, from these sample points we check to see if they are on the 'right' side of the sphere
+    and if the sample ray does not intersect an object. For each point we then divide the lighting value obtained by the number of sample rays taken from the sphere, giving the average light value. 
+
+    \begin{center}
+        \includegraphics[scale=0.70]{images/softshadow_showcase.png}
+
+        The soft shadow result when SPHERE SAMPLE LIMIT has been set to 100 samples.
+
+        \includegraphics[scale=0.70]{images/softshadowdebug.png}
+
+        The soft shadow debug, showing random samples generated uniformly from the spherical lightsource and showcasing the rays that intersect an objects and those that do not.  
+
+    \end{center}
 
     \subsubsection{Hard Shadows}
     To be constructed
