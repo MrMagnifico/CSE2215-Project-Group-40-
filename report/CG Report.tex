@@ -10,10 +10,38 @@
     \maketitle
 
     \section{Work Distribution}
-    To be constructed
+    
+    \begin{tabular}{ |p{2.5cm}||p{2.5cm}|p{2.5cm}|p{2.5cm}| }
+        \hline
+        \textbf{Feature} &\textbf{Ee Xuan} &\textbf{Elvira} &\textbf{William}\\
+        \hline
+        Shading         &0\%    &100\%  &0\%\\
+        Recursion       &0\%    &0\%    &100\%\\
+        Hard Shadows    &0\%    &100\%  &0\%\\
+        Soft Shadows    &100\%  &0\%    &0\%\\
+        \hline
+    \end{tabular}
 
     \section{Features}
     \subsection{Main Requirements}
+    \subsubsection{Phong Shading}
+    At each intersection point, the diffuse and specular terms from the Phong Model are used to calculate the lighting.
+    We ignore the ambient term, as it is a crude approximation of global illumination, and therefore not necessary to incorporate.
+    First, the lighting is computed separately for every light source in the scene, 
+    and those results are then added together to compute the final, direct illumination.
+
+    \begin{center}
+        \includegraphics[scale=0.60]{images/phong_shading_showcase.png}
+
+        The lighting effects produced by phong shading with two light sources RGB(255, 0, 255) and RGB(0, 255, 255)
+
+        \vspace{5mm}
+
+        \includegraphics[scale=0.60]{images/phong_shading_debug.png}
+
+        The phong shading debug, showing one ray shot from another angle, along with its normal
+    \end{center}
+
     \subsubsection{Recursive Ray Tracing}
     The recursive ray tracer builds upon the previously implemented ray shading,
     creating reflection rays at each intersection point and adding the value of the reflection ray's lighting to the initial ray's specular component,
@@ -21,13 +49,13 @@
     This is done recursively until one of the previously mentioned limiting conditions applies or the recursion depth reaches a pre-set \emph{RECURSION\_LIMT}.
 
     \begin{center}
-        \includegraphics[scale=0.70]{images/recursive_ray_tracer_showcase.png}
+        \includegraphics[scale=0.65]{images/recursive_ray_tracer_showcase.png}
 
         The complex specular effects produced by recursive ray tracing, which include proper mirror simulation
 
         \vspace{5mm}
 
-        \includegraphics[scale=0.70]{images/recursive_ray_tracer_debug.png}
+        \includegraphics[scale=0.65]{images/recursive_ray_tracer_debug.png}
 
         The recursive ray tracer debug, showing two total rays in the recursive chain, along with their normals
     \end{center}
@@ -49,6 +77,12 @@
         The soft shadow debug, showing random samples generated uniformly from the spherical lightsource and showcasing the rays that intersect an objects and those that do not.  
 
     \end{center}
+
+    \subsubsection{Hard Shadows}
+    To be constructed
+
+    \subsubsection{Soft Shadows}
+    To be constructed
 
     \section{Models}
     To be constructed
