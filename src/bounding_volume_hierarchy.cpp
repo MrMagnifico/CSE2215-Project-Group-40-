@@ -3,11 +3,12 @@
 #include <glm/vector_relational.hpp>
 #include <limits>
 
-BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene *pScene, int max_level, int min_triangles)
+BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene *pScene, int max_level, int min_triangles, int sah_bins)
     : m_pScene(pScene)
 {
     maxLevel = max_level;
     minTriangles = min_triangles;
+    sahBins = sah_bins;
 
     // Construct indices for all triangles and construct parent node.
     std::vector<std::pair<int, std::vector<int>>> all_mesh_triangle_indices;
@@ -70,7 +71,7 @@ bool BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo) const
 int BoundingVolumeHierarchy::constructNode(Scene &scene, std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices, int current_level)
 {
     std::vector<std::pair<float, float>> limits = computeBoundingBoxLimits(scene, meshTriangleIndices);
-    int num_triangles = countTriangles(scene, meshTriangleIndices);
+    int num_triangles = countTriangles(meshTriangleIndices);
     AxisAlignedBox node_box = {
             glm::vec3{limits[0].first, limits[1].first, limits[2].first},
             glm::vec3{limits[0].second, limits[1].second, limits[2].second}};
@@ -136,30 +137,34 @@ BoundingVolumeHierarchy::computeOptimalSplit(Scene &scene, std::vector<std::pair
 {
     // Define and alternate axis to split on.
     int comparison_axis = current_level % 3;
+    int area_axis = (current_level + 1) % 3;
 
     std::pair<std::vector<std::pair<int, std::vector<int>>>, std::vector<std::pair<int, std::vector<int>>>> left_right_split_indices;
-    float split_boundary = (limits[comparison_axis].first + limits[comparison_axis].second) / 2.0f;
+    float cost = std::numeric_limits<float>::max();
 
-    // Create vectors to store LHS and RHS mesh-triangle indices.
-    std::vector<std::pair<int, std::vector<int>>> lhs_indices;
-    std::vector<std::pair<int, std::vector<int>>> rhs_indices;
-
-    // Compute which triangles belong in which side of the bin.
-    for (std::pair<int, std::vector<int>> &coordinate_pair : meshTriangleIndices)
+    for (int bin = 1; bin < sahBins; bin++)
     {
-        // Create an empty vector for the current mesh for each corresponding split vector.
-        Mesh &current_mesh = scene.meshes[coordinate_pair.first];
-        std::pair<int, std::vector<int>> lhs_mesh_indices = {coordinate_pair.first, std::vector<int>{}};
-        std::pair<int, std::vector<int>> rhs_mesh_indices = {coordinate_pair.first, std::vector<int>{}};
-            
-        // Populate the triangle index vector for the current mesh appropriately for each split vector.
-        for (int triangle_index : coordinate_pair.second)
-        {
-            Triangle &current_triangle = current_mesh.triangles[triangle_index];
-            int position_info = checkTriangleBorderSide(scene, current_mesh, current_triangle, comparison_axis, split_boundary);
+        // Define split boundary and create vectors to store LHS and RHS mesh-triangle indices.
+        float split_boundary = ((limits[comparison_axis].first * bin) + (limits[comparison_axis].second * (sahBins - bin))) / sahBins; // This. This fucker right here. Fuck him.
+        std::vector<std::pair<int, std::vector<int>>> lhs_indices;
+        std::vector<std::pair<int, std::vector<int>>> rhs_indices;
 
-            switch (position_info)
+        // Compute which triangles belong on which side of the bin.
+        for (std::pair<int, std::vector<int>> &coordinate_pair : meshTriangleIndices)
+        {
+            // Create an empty vector for the current mesh for each corresponding split vector.
+            Mesh &current_mesh = scene.meshes[coordinate_pair.first];
+            std::pair<int, std::vector<int>> lhs_mesh_indices = {coordinate_pair.first, std::vector<int>{}};
+            std::pair<int, std::vector<int>> rhs_mesh_indices = {coordinate_pair.first, std::vector<int>{}};
+
+            // Populate the triangle index vector for the current mesh appropriately for each split vector.
+            for (int triangle_index : coordinate_pair.second)
             {
+                Triangle &current_triangle = current_mesh.triangles[triangle_index];
+                int position_info = checkTriangleBorderSide(scene, current_mesh, current_triangle, comparison_axis, split_boundary);
+
+                switch (position_info)
+                {
                 case 0:
                     lhs_mesh_indices.second.push_back(triangle_index);
                     break;
@@ -170,15 +175,29 @@ BoundingVolumeHierarchy::computeOptimalSplit(Scene &scene, std::vector<std::pair
                     lhs_mesh_indices.second.push_back(triangle_index);
                     rhs_mesh_indices.second.push_back(triangle_index);
                     break;
+                }
             }
+            // Add indices of this mesh's triangles to mesh-triangle indices vectors.
+            lhs_indices.push_back(lhs_mesh_indices);
+            rhs_indices.push_back(rhs_mesh_indices);
         }
+        // Compute surface area of splits' bounding boxes.
+        std::vector<std::pair<float, float>> lhs_bounding_box = computeBoundingBoxLimits(scene, lhs_indices);
+        std::vector<std::pair<float, float>> rhs_bounding_box = computeBoundingBoxLimits(scene, rhs_indices);
+        float lhs_area = (std::abs(lhs_bounding_box[comparison_axis].second - lhs_bounding_box[comparison_axis].first)
+        * std::abs(lhs_bounding_box[area_axis].second - lhs_bounding_box[area_axis].first));
+        float rhs_area = (std::abs(rhs_bounding_box[comparison_axis].second - rhs_bounding_box[comparison_axis].first)
+        * std::abs(rhs_bounding_box[area_axis].second - rhs_bounding_box[area_axis].first));
 
-        // Add indices of this mesh's triangles to mesh-triangle indices vectors.
-        lhs_indices.push_back(lhs_mesh_indices);
-        rhs_indices.push_back(rhs_mesh_indices);
+        // Compute cost function and keep or discard current bin.
+        float candidate_cost = float(lhs_area*countTriangles(lhs_indices)) + float(rhs_area*countTriangles(rhs_indices));
+        if (candidate_cost < cost)
+        {
+            cost = candidate_cost;
+            left_right_split_indices.first = lhs_indices;
+            left_right_split_indices.second = rhs_indices;
+        }
     }
-    left_right_split_indices.first = lhs_indices;
-    left_right_split_indices.second = rhs_indices;
     return left_right_split_indices;
 }
 
@@ -198,7 +217,7 @@ int BoundingVolumeHierarchy::checkTriangleBorderSide(Scene &scene, Mesh &mesh, T
     else {return 0;}
 }
 
-int BoundingVolumeHierarchy::countTriangles(Scene &scene, std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices)
+int BoundingVolumeHierarchy::countTriangles(std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices)
 {
     int triangle_count = 0;
     for (std::pair<int, std::vector<int>> &coordinate_pair : meshTriangleIndices) {triangle_count += coordinate_pair.second.size();}

@@ -20,10 +20,11 @@ public:
      * pScene: Pointer to the scene to be rendered.
      * max_level: The maximum level to which the tree should grow to.
      * min_triangles: Minimum number of triangles required for a node to attempt a split.
+     * sah_bins: Number of bins to use for SAH (must be >=2).
      * 
      * Returns: A BVH tree to use for accelerating ray intersections.
      */
-    BoundingVolumeHierarchy(Scene *pScene, int max_level, int min_triangles);
+    BoundingVolumeHierarchy(Scene *pScene, int max_level, int min_triangles, int sah_bins);
 
     void debugDraw(int level);
     int numLevels();
@@ -38,6 +39,7 @@ private:
     std::vector<BVHNode> nodeVector; // Stores all of the BVH tree's nodes.
     int maxLevel;                    // Max level the tree should grow to.
     int minTriangles;                // Minimum number of triangles required for a node to split itself and not become a leaf node.
+    int sahBins;                     // Number of bins to use for SAH.
 
     /**Construct a BVH node from the data in the given scene and return its index in the std::vector of nodes.
     * 
@@ -57,8 +59,9 @@ private:
      * with the int in each pair representing the index of a mesh in the scene and the std::vector<int> representing the indices of the
      * triangles belonging to that mesh
      */
-    std::pair<std::vector<std::pair<int, std::vector<int>>>, std::vector<std::pair<int, std::vector<int>>>> computeOptimalSplit(Scene &scene, std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices,
-                                                                                                                                std::vector<std::pair<float, float>> &limits, int current_level);
+    std::pair<std::vector<std::pair<int, std::vector<int>>>, std::vector<std::pair<int, std::vector<int>>>>
+    computeOptimalSplit(Scene &scene, std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices,
+                        std::vector<std::pair<float, float>> &limits, int current_level);
 
     /**Check if a triangle is wholly on the left, wholly on the right or split between the boundary defined by comparison_axis and split_boundary
      * 
@@ -76,5 +79,5 @@ private:
     int checkTriangleBorderSide(Scene &scene, Mesh &mesh, Triangle &triangle, int comparison_axis, float split_boundary);
 
     // Count the number of triangles contained in meshTriangleIndices.
-    int countTriangles(Scene &scene, std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices);
+    int countTriangles(std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices);
 };
