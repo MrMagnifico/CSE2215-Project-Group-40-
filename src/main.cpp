@@ -40,8 +40,6 @@ enum class ViewMode {
     RayTracing = 1
 };
 
-
-// NOTE(Mathijs): separate function to make recursion easier (could also be done with lambda + std::function).
 static glm::vec3 getFinalColor(const Scene& scene, const BoundingVolumeHierarchy& bvh, Ray ray)
 {
     HitInfo hitInfo;
@@ -50,7 +48,6 @@ static glm::vec3 getFinalColor(const Scene& scene, const BoundingVolumeHierarchy
     } else {
         // Draw a red debug ray if the ray missed.
         drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
-        // Set the color of the pixel to black if the ray misses.
         return glm::vec3(0.0f);
     }
 }

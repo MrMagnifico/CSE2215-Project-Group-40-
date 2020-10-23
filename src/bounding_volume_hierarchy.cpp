@@ -25,14 +25,11 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene *pScene, int max_level, i
     constructNode(*pScene, all_mesh_triangle_indices, 1);
 }
 
-// Use this function to visualize your BVH. This can be useful for debugging. Use the functions in
-// draw.h to draw the various shapes. We have extended the AABB draw functions to support wireframe
-// mode, arbitrary colors and transparency.
 void BoundingVolumeHierarchy::debugDraw(int level)
 {
     for (BVHNode node : nodeVector)
     {
-        if (node.level <= level)
+        if (node.level == level)
         {
             drawAABB(node.boundingBox, DrawMode::Wireframe);
         }

@@ -57,7 +57,7 @@ bool shadowRay(const Ray &ray, const PointLight &light, const BoundingVolumeHier
     glm::vec3 p = ray.origin + ray.t * ray.direction;
     glm::vec3 ray_direction = glm::normalize(light.position - p);
 
-    // Construct shadow ray
+    // Construct the shadow ray.
     Ray shadowRay = {p + (RAY_STEP*ray_direction), ray_direction, glm::distance(p, light.position)};
 
     // Draw a red debug ray if the shadow ray hits another source.

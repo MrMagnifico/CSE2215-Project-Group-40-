@@ -24,8 +24,7 @@ public:
      * Returns: A BVH tree to use for accelerating ray intersections.
      */
     BoundingVolumeHierarchy(Scene *pScene, int max_level, int bin_num);
-
-    // Use this function to visualize your BVH. This can be useful for debugging.
+    
     void debugDraw(int level);
     int numLevels() const;
 
