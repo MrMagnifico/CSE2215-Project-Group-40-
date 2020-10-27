@@ -27,6 +27,10 @@ DISABLE_WARNINGS_POP()
 #include <omp.h>
 #endif
 
+const int BVH_DEPTH = 25;
+const int BVH_MIN_NODE_TRIANGLES = 10;
+const int BVH_BINS = 5;
+
 // This is the main application. The code in here does not need to be modified.
 constexpr glm::ivec2 windowResolution { 800, 800 };
 const std::filesystem::path dataPath { DATA_DIR };
@@ -37,17 +41,14 @@ enum class ViewMode {
     RayTracing = 1
 };
 
-
-// NOTE(Mathijs): separate function to make recursion easier (could also be done with lambda + std::function).
-static glm::vec3 getFinalColor(const Scene& scene, const BoundingVolumeHierarchy& bvh, Ray ray)
+static glm::vec3 getFinalColor(const Scene& scene, BoundingVolumeHierarchy& bvh, Ray ray)
 {
     HitInfo hitInfo;
-    if (bvh.intersect(ray, hitInfo)) {
+    if (bvh.intersect(ray, hitInfo)) {        
         return recursiveRayTrace(ray, hitInfo, scene, bvh, 0);
     } else {
         // Draw a red debug ray if the ray missed.
         drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
-        // Set the color of the pixel to black if the ray misses.
         return glm::vec3(0.0f);
     }
 }
@@ -56,7 +57,7 @@ static void setOpenGLMatrices(const Trackball& camera);
 static void renderOpenGL(const Scene& scene, const Trackball& camera, int selectedLight);
 
 // This is the main rendering function. You are free to change this function in any way (including the function signature).
-static void renderRayTracing(const Scene& scene, const Trackball& camera, const BoundingVolumeHierarchy& bvh, Screen& screen)
+static void renderRayTracing(const Scene& scene, const Trackball& camera, BoundingVolumeHierarchy& bvh, Screen& screen)
 {
 #ifdef USE_OPENMP
 #pragma omp parallel for
@@ -88,7 +89,7 @@ int main(int argc, char** argv)
     SceneType sceneType { SceneType::SingleTriangle };
     std::optional<Ray> optDebugRay;
     Scene scene = loadScene(sceneType, dataPath);
-    BoundingVolumeHierarchy bvh { &scene };
+    BoundingVolumeHierarchy bvh {&scene, BVH_DEPTH, BVH_MIN_NODE_TRIANGLES, BVH_BINS};
 
     int bvhDebugLevel = 0;
     bool debugBVH { false };
@@ -121,7 +122,7 @@ int main(int argc, char** argv)
             if (ImGui::Combo("Scenes", reinterpret_cast<int*>(&sceneType), items.data(), int(items.size()))) {
                 optDebugRay.reset();
                 scene = loadScene(sceneType, dataPath);
-                bvh = BoundingVolumeHierarchy(&scene);
+                bvh = BoundingVolumeHierarchy(&scene, BVH_DEPTH, BVH_MIN_NODE_TRIANGLES, BVH_BINS);
                 if (optDebugRay) {
                     HitInfo dummy {};
                     bvh.intersect(*optDebugRay, dummy);
@@ -148,7 +149,7 @@ int main(int argc, char** argv)
         if (viewMode == ViewMode::Rasterization) {
             ImGui::Checkbox("Draw BVH", &debugBVH);
             if (debugBVH)
-                ImGui::SliderInt("BVH Level", &bvhDebugLevel, 0, bvh.numLevels() - 1);
+                ImGui::SliderInt("BVH Level", &bvhDebugLevel, 1, bvh.numLevels());
         }
 
         ImGui::Spacing();

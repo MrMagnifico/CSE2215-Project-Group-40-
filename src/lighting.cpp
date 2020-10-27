@@ -68,7 +68,7 @@ bool checkRightHalf(const SphericalLight &sphere, const glm::vec3 &point, const 
     return false;
 }
 
-glm::vec3 softShadow(const HitInfo &hitInfo, const Ray &ray, const SphericalLight &light, const BoundingVolumeHierarchy &bvh)
+glm::vec3 softShadow(const HitInfo &hitInfo, const Ray &ray, const SphericalLight &light, BoundingVolumeHierarchy &bvh)
 {
     glm::vec3 final_lighting = {0.0f, 0.0f, 0.0f};
     std::vector<glm::vec3> sample_points = randomPointOnSphere(light, SPHERE_SAMPLE_LIMIT);
@@ -87,7 +87,7 @@ glm::vec3 softShadow(const HitInfo &hitInfo, const Ray &ray, const SphericalLigh
     return final_lighting * (1.0f / float(SPHERE_SAMPLE_LIMIT));
 }
 
-glm::vec3 lightRay(const Ray &ray, const HitInfo &hitInfo, const Scene &scene, const BoundingVolumeHierarchy &bvh)
+glm::vec3 lightRay(const Ray &ray, const HitInfo &hitInfo, const Scene &scene, BoundingVolumeHierarchy &bvh)
 {
     // Calculate the point of intersection.
     glm::vec3 p = ray.origin + ray.t * ray.direction;
@@ -114,14 +114,15 @@ glm::vec3 lightRay(const Ray &ray, const HitInfo &hitInfo, const Scene &scene, c
     return lighting;
 }
 
-bool shadowRay(const Ray &ray, const PointLight &light, const BoundingVolumeHierarchy &bvh)
+bool shadowRay(const Ray &ray, const PointLight &light, BoundingVolumeHierarchy &bvh)
 {
     // Calculate the point of intersection and the shadow ray direction.
     glm::vec3 p = ray.origin + ray.t * ray.direction;
     glm::vec3 ray_direction = glm::normalize(light.position - p);
+  
+    // Construct the shadow ray.
+    Ray shadowRay = {p + (RAY_STEP*ray_direction), ray_direction, glm::distance(p, light.position)};
 
-    // Construct shadow ray
-    Ray shadowRay = {p + (RAY_STEP * ray_direction), ray_direction, glm::distance(p, light.position)};
 
     // Draw a red debug ray if the shadow ray hits another source.
     HitInfo hitInfo;
@@ -137,7 +138,7 @@ bool shadowRay(const Ray &ray, const PointLight &light, const BoundingVolumeHier
 }
 
 glm::vec3 recursiveRayTrace(const Ray &intersectionRay, const HitInfo &hitInfo, const Scene &scene,
-                            const BoundingVolumeHierarchy &bvh, int rayLevel)
+                            BoundingVolumeHierarchy &bvh, int rayLevel)
 {
     if (rayLevel < RECURSION_LIMIT) // Control the recursion level.
     {
