@@ -43,6 +43,17 @@ private:
     int minTriangles;                // Minimum number of triangles required for a node to split itself and not become a leaf node.
     int sahBins;                     // Number of bins to use for SAH.
 
+    /**Traverse the BVH tree recursively starting at the given node and return whether a hit occurs at any point down the tree,
+     * modifying hitInfo as appropriate.
+     * 
+     * Parameters:
+     * scene: The scene to be rendered.
+     * ray: The ray whose intersection info (or lack thereof) must be computed.
+     * hitInfo: The HitInfo struct to be used to store information about the ray's intersection (if any).
+     * node: The node in the BVH tree to start computations at (this should be nodeVector[0] on the initial call).
+     */
+    bool bvhIntersect(Ray& ray, HitInfo& hitInfo, BVHNode& node); 
+
     /**Construct a BVH node from the data in the given scene and return its index in the std::vector of nodes.
     * 
     * Parameters:
@@ -52,19 +63,17 @@ private:
     * 
     * Returns: The index of the created node in the node vector.
     */
-    bool intersectRecurseMethod(Ray& ray, HitInfo& hitInfo, BVHNode& node); 
-
-    int constructNode(Scene &scene, std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices, int current_level);
+    int constructNode(std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices, int current_level);
 
     // Compute borders of the bounding box.
-    std::vector<std::pair<float, float>> computeBoundingBoxLimits(Scene &scene, std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices);
+    std::vector<std::pair<float, float>> computeBoundingBoxLimits(std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices);
 
     /**Compute triangles that belong in each split and return a std::pair of std::vector<std::pair<int, std::vector<int>>,
      * with the int in each pair representing the index of a mesh in the scene and the std::vector<int> representing the indices of the
      * triangles belonging to that mesh
      */
     std::pair<std::vector<std::pair<int, std::vector<int>>>, std::vector<std::pair<int, std::vector<int>>>>
-    computeOptimalSplit(Scene &scene, std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices,
+    computeOptimalSplit(std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices,
                         std::vector<std::pair<float, float>> &limits, int current_level);
 
     /**Check if a triangle is wholly on the left, wholly on the right or split between the boundary defined by comparison_axis and split_boundary
@@ -80,7 +89,7 @@ private:
      * 1 - If the triangle is wholly on the right (positive side).
      * 2 - If the triangle's vertices are split across the border.
      */
-    int checkTriangleBorderSide(Scene &scene, Mesh &mesh, Triangle &triangle, int comparison_axis, float split_boundary);
+    int checkTriangleBorderSide(Mesh &mesh, Triangle &triangle, int comparison_axis, float split_boundary);
 
     // Count the number of triangles contained in meshTriangleIndices.
     int countTriangles(std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices);

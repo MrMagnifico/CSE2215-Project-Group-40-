@@ -27,8 +27,8 @@ DISABLE_WARNINGS_POP()
 #include <omp.h>
 #endif
 
-const int BVH_DEPTH = 10;
-const int BVH_MIN_NODE_TRIANGLES = 25;
+const int BVH_DEPTH = 7;
+const int BVH_MIN_NODE_TRIANGLES = 10;
 const int BVH_BINS = 5;
 
 // This is the main application. The code in here does not need to be modified.

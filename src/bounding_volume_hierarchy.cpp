@@ -2,7 +2,6 @@
 #include "draw.h"
 #include <glm/vector_relational.hpp>
 #include <limits>
-#include <iostream> 
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene *pScene, int max_level, int min_triangles, int sah_bins)
     : m_pScene(pScene)
@@ -23,7 +22,7 @@ BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene *pScene, int max_level, i
         }
         all_mesh_triangle_indices.push_back(mesh_triangle_pairs);
     }
-    constructNode(*pScene, all_mesh_triangle_indices, 1);
+    constructNode(all_mesh_triangle_indices, 1);
 }
 
 void BoundingVolumeHierarchy::debugDraw(int level)
@@ -44,67 +43,49 @@ int BoundingVolumeHierarchy::numLevels()
     return max_level;
 }
 
-bool  BoundingVolumeHierarchy::intersect(Ray& ray, HitInfo& hitInfo) {
-    return intersectRecurseMethod(ray, hitInfo, nodeVector[0]);
-}
+bool BoundingVolumeHierarchy::intersect(Ray &ray, HitInfo &hitInfo) {return bvhIntersect(ray, hitInfo, nodeVector[0]);}
 
-// Return true if something is hit, returns false otherwise. Only find hits if they are closer than t stored
-// in the ray and if the intersection is on the correct side of the origin (the new t >= 0). Replace the code
-// by a bounding volume hierarchy acceleration structure as described in the assignment. You can change any
-// file you like, including bounding_volume_hierarchy.h .
-bool BoundingVolumeHierarchy::intersectRecurseMethod(Ray& ray, HitInfo& hitInfo, BVHNode& node)
+bool BoundingVolumeHierarchy::bvhIntersect(Ray& ray, HitInfo& hitInfo, BVHNode& node)
 {
-    bool hit = false; 
-    if (!intersectRayWithShape(node.boundingBox, ray)) {
-        return hit; 
+    // Check for intersection with current node and reset 't' value set by the node intersection check when appropriate.
+    float old_t = ray.t;
+    if (!intersectRayWithShape(node.boundingBox, ray)) {return false;}
+    ray.t = old_t;
+
+    // Recurse if node is not a leaf.
+    if (!node.isLeaf)
+    {
+        int left_child_index = node.nodeChildrenIndices.first;       
+        int right_child_index = node.nodeChildrenIndices.second;
+        return (bvhIntersect(ray, hitInfo, nodeVector[left_child_index]) || bvhIntersect(ray, hitInfo, nodeVector[right_child_index]));
     }
 
-    if (node.isLeaf) {
-        for (const std::pair<int, std::vector<int>> x : node.triangleChildrenIndices) {
-            std::vector<Mesh> mesh = m_pScene->meshes; 
-            for (const auto& tri : mesh[x.first].triangles) {
-                const auto v0 = mesh[x.first].vertices[tri[0]];
-                const auto v1 = mesh[x.first].vertices[tri[1]];
-                const auto v2 = mesh[x.first].vertices[tri[2]];
-                if (intersectRayWithTriangle(v0.p, v1.p, v2.p, ray, hitInfo)) {
-                    hitInfo.material = mesh[x.first].material;
-                    std::cout << hit;
-                    hit = true;
-                }
+    // Check for intersection with leaf node's triangles' vertices if node is a leaf.
+    //TODO: Problem's here, chief
+    bool hit = false;
+    for (const std::pair<int, std::vector<int>> &mesh_triangle_indices : node.triangleChildrenIndices)
+    {
+        Mesh &current_mesh = m_pScene->meshes[mesh_triangle_indices.first];
+        for (int current_triangle_index : mesh_triangle_indices.second)
+        {
+            Triangle &current_triangle = current_mesh.triangles[current_triangle_index];
+            std::vector<Vertex> vertices = {
+                current_mesh.vertices[current_triangle[0]],
+                current_mesh.vertices[current_triangle[1]],
+                current_mesh.vertices[current_triangle[2]]};
+            if (intersectRayWithTriangle(vertices[0].p, vertices[1].p, vertices[2].p, ray, hitInfo))
+            {
+                hitInfo.material = current_mesh.material;
+                hit = true;
             }
-            for (const auto& sphere : m_pScene->spheres) {
-                hit |= intersectRayWithShape(sphere, ray, hitInfo);
-                return hit;
-            }
-               // return hit; 
-            //for (const auto& tri : m_pScene->meshes
-            //const auto v0 = x.second[0];
-            //const auto v1 = x.second[1];
-            //const auto v2 = x.second[2];
-            //
-            //if (intersectRayWithTriangle(x.second[0]., v1.p, v2.p, ray, hitInfo)) {
-            //    std::cout << "hi";
-            //    hitInfo.material = mesh.material;
-            //    hit = true;
-            //}
-        }    
-        return hit; 
+        }
     }
-
-    if (!node.isLeaf) {
-        int left = node.nodeChildrenIndices.first;       
-        int right = node.nodeChildrenIndices.second;
-       // std::cout << node.nodeChildrenIndices.first;
-        ray.t = std::numeric_limits<float>::max();
-        return (intersectRecurseMethod(ray, hitInfo, nodeVector[left]) || intersectRecurseMethod(ray, hitInfo, nodeVector[right]));
-    }         
-
     return hit;
 }
 
-int BoundingVolumeHierarchy::constructNode(Scene &scene, std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices, int current_level)
+int BoundingVolumeHierarchy::constructNode(std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices, int current_level)
 {
-    std::vector<std::pair<float, float>> limits = computeBoundingBoxLimits(scene, meshTriangleIndices);
+    std::vector<std::pair<float, float>> limits = computeBoundingBoxLimits(meshTriangleIndices);
     int num_triangles = countTriangles(meshTriangleIndices);
     AxisAlignedBox node_box = {
             glm::vec3{limits[0].first, limits[1].first, limits[2].first},
@@ -116,28 +97,24 @@ int BoundingVolumeHierarchy::constructNode(Scene &scene, std::vector<std::pair<i
     {
         // Construct inner node if applicable.
         std::pair<std::vector<std::pair<int, std::vector<int>>>, std::vector<std::pair<int, std::vector<int>>>> child_triangle_meshes
-        = computeOptimalSplit(scene, meshTriangleIndices, limits, current_level);
+        = computeOptimalSplit(meshTriangleIndices, limits, current_level);
         constructed_node = {
             node_box,
             false,
             current_level,
             std::pair<int, int>{},
             std::vector<std::pair<int, std::vector<int>>>{}};
-        nodeVector.push_back(std::move(constructed_node));
-        nodeVector[new_node_index].nodeChildrenIndices = { constructNode(scene, child_triangle_meshes.first, current_level + 1), constructNode(scene, child_triangle_meshes.second, current_level + 1) };
+        nodeVector.push_back(constructed_node);
+        nodeVector[new_node_index].nodeChildrenIndices = {constructNode(child_triangle_meshes.first, current_level + 1), constructNode(child_triangle_meshes.second, current_level + 1)};
     } else {
         // Construct leaf node if maxLevel reached or number of triangles is below minimum.
         constructed_node = {node_box, true, current_level, std::pair<int, int>{}, meshTriangleIndices};
-        nodeVector.push_back(std::move(constructed_node));
+        nodeVector.push_back(constructed_node);
     }
-    std::cout << "---Node with index " << new_node_index << std::endl;
-    std::cout << "Left child index: " << constructed_node.nodeChildrenIndices.first << std::endl;
-    std::cout << "Right child index: " << constructed_node.nodeChildrenIndices.second << std::endl;
     return new_node_index;
 }
 
-std::vector<std::pair<float, float>> BoundingVolumeHierarchy::computeBoundingBoxLimits(Scene &scene,
-                                                                                       std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices)
+std::vector<std::pair<float, float>> BoundingVolumeHierarchy::computeBoundingBoxLimits(std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices)
 {
     std::vector<std::pair<float, float>> limits = {
         std::pair<float, float>{std::numeric_limits<float>::max(), std::numeric_limits<float>::min()},
@@ -145,7 +122,7 @@ std::vector<std::pair<float, float>> BoundingVolumeHierarchy::computeBoundingBox
         std::pair<float, float>{std::numeric_limits<float>::max(), std::numeric_limits<float>::min()}};
     for (std::pair<int, std::vector<int>> &coordinate_pairs : meshTriangleIndices)
     {
-        Mesh &current_mesh = scene.meshes[coordinate_pairs.first];
+        Mesh &current_mesh = m_pScene->meshes[coordinate_pairs.first];
         for (int triangle_index : coordinate_pairs.second)
         {
             Triangle &current_triangle = current_mesh.triangles[triangle_index];
@@ -165,12 +142,11 @@ std::vector<std::pair<float, float>> BoundingVolumeHierarchy::computeBoundingBox
             }
         }
     }
-    std::cout << limits[0].first << limits[0].second << std::endl;
     return limits;
 }
 
 std::pair<std::vector<std::pair<int, std::vector<int>>>, std::vector<std::pair<int, std::vector<int>>>>
-BoundingVolumeHierarchy::computeOptimalSplit(Scene &scene, std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices,
+BoundingVolumeHierarchy::computeOptimalSplit(std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices,
                                              std::vector<std::pair<float, float>> &limits, int current_level)
 {
     // Define and alternate axis to split on.
@@ -191,7 +167,7 @@ BoundingVolumeHierarchy::computeOptimalSplit(Scene &scene, std::vector<std::pair
         for (std::pair<int, std::vector<int>> &coordinate_pair : meshTriangleIndices)
         {
             // Create an empty vector for the current mesh for each corresponding split vector.
-            Mesh &current_mesh = scene.meshes[coordinate_pair.first];
+            Mesh &current_mesh = m_pScene->meshes[coordinate_pair.first];
             std::pair<int, std::vector<int>> lhs_mesh_indices = {coordinate_pair.first, std::vector<int>{}};
             std::pair<int, std::vector<int>> rhs_mesh_indices = {coordinate_pair.first, std::vector<int>{}};
 
@@ -199,7 +175,7 @@ BoundingVolumeHierarchy::computeOptimalSplit(Scene &scene, std::vector<std::pair
             for (int triangle_index : coordinate_pair.second)
             {
                 Triangle &current_triangle = current_mesh.triangles[triangle_index];
-                int position_info = checkTriangleBorderSide(scene, current_mesh, current_triangle, comparison_axis, split_boundary);
+                int position_info = checkTriangleBorderSide(current_mesh, current_triangle, comparison_axis, split_boundary);
 
                 switch (position_info)
                 {
@@ -220,8 +196,8 @@ BoundingVolumeHierarchy::computeOptimalSplit(Scene &scene, std::vector<std::pair
             rhs_indices.push_back(rhs_mesh_indices);
         }
         // Compute surface area of splits' bounding boxes.
-        std::vector<std::pair<float, float>> lhs_bounding_box = computeBoundingBoxLimits(scene, lhs_indices);
-        std::vector<std::pair<float, float>> rhs_bounding_box = computeBoundingBoxLimits(scene, rhs_indices);
+        std::vector<std::pair<float, float>> lhs_bounding_box = computeBoundingBoxLimits(lhs_indices);
+        std::vector<std::pair<float, float>> rhs_bounding_box = computeBoundingBoxLimits(rhs_indices);
         float lhs_area = (std::abs(lhs_bounding_box[comparison_axis].second - lhs_bounding_box[comparison_axis].first)
         * std::abs(lhs_bounding_box[area_axis].second - lhs_bounding_box[area_axis].first));
         float rhs_area = (std::abs(rhs_bounding_box[comparison_axis].second - rhs_bounding_box[comparison_axis].first)
@@ -239,7 +215,7 @@ BoundingVolumeHierarchy::computeOptimalSplit(Scene &scene, std::vector<std::pair
     return left_right_split_indices;
 }
 
-int BoundingVolumeHierarchy::checkTriangleBorderSide(Scene &scene, Mesh &mesh, Triangle &triangle, int comparison_axis, float split_boundary)
+int BoundingVolumeHierarchy::checkTriangleBorderSide(Mesh &mesh, Triangle &triangle, int comparison_axis, float split_boundary)
 {
     std::vector<Vertex> vertices = {mesh.vertices[triangle[0]], mesh.vertices[triangle[1]], mesh.vertices[triangle[2]]};
     bool isLeft = true;
