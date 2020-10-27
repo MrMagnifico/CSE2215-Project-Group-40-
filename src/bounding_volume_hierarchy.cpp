@@ -63,7 +63,6 @@ bool BoundingVolumeHierarchy::bvhIntersect(Ray& ray, HitInfo& hitInfo, BVHNode& 
     }
 
     // Check for intersection with leaf node's triangles' vertices if node is a leaf.
-    //TODO: Problem's here, chief
     bool hit = false;
     for (const std::pair<int, std::vector<int>> &mesh_triangle_indices : node.triangleChildrenIndices)
     {

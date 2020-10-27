@@ -33,15 +33,15 @@ public:
     // Only find hits if they are closer than t stored in the ray and the intersection
     // is on the correct side of the origin (the new t >= 0).
     bool intersect(Ray &ray, HitInfo &hitInfo);
-    
+
     std::vector<BVHNode> nodeVector; // Stores all of the BVH tree's nodes.
 
 private:
     Scene *m_pScene;
 
-    int maxLevel;                    // Max level the tree should grow to.
-    int minTriangles;                // Minimum number of triangles required for a node to split itself and not become a leaf node.
-    int sahBins;                     // Number of bins to use for SAH.
+    int maxLevel;     // Max level the tree should grow to.
+    int minTriangles; // Minimum number of triangles required for a node to split itself and not become a leaf node.
+    int sahBins;      // Number of bins to use for SAH.
 
     /**Traverse the BVH tree recursively starting at the given node and return whether a hit occurs at any point down the tree,
      * modifying hitInfo as appropriate.
@@ -51,8 +51,10 @@ private:
      * ray: The ray whose intersection info (or lack thereof) must be computed.
      * hitInfo: The HitInfo struct to be used to store information about the ray's intersection (if any).
      * node: The node in the BVH tree to start computations at (this should be nodeVector[0] on the initial call).
+     * 
+     * Returns: A boolean indicating whether an intersection occurs in the tree at or below the given node.
      */
-    bool bvhIntersect(Ray& ray, HitInfo& hitInfo, BVHNode& node); 
+    bool bvhIntersect(Ray &ray, HitInfo &hitInfo, BVHNode &node);
 
     /**Construct a BVH node from the data in the given scene and return its index in the std::vector of nodes.
     * 
