@@ -57,7 +57,9 @@ bool BoundingVolumeHierarchy::bvhIntersect(Ray& ray, HitInfo& hitInfo, BVHNode& 
     {
         int left_child_index = node.nodeChildrenIndices.first;       
         int right_child_index = node.nodeChildrenIndices.second;
-        return (bvhIntersect(ray, hitInfo, nodeVector[left_child_index]) || bvhIntersect(ray, hitInfo, nodeVector[right_child_index]));
+        bool left_side_intersect = bvhIntersect(ray, hitInfo, nodeVector[left_child_index]);
+        bool right_side_intersect = bvhIntersect(ray, hitInfo, nodeVector[right_child_index]);
+        return (left_side_intersect || right_side_intersect);
     }
 
     // Check for intersection with leaf node's triangles' vertices if node is a leaf.
