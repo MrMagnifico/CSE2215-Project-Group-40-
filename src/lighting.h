@@ -10,6 +10,13 @@ DISABLE_WARNINGS_POP()
 glm::vec3 phongDiffuseOnly(const HitInfo &hitInfo, const glm::vec3 &vertexPos, const glm::vec3 &lightPos);
 glm::vec3 phongSpecularOnly(const HitInfo &hitInfo, const glm::vec3 &vertexPos, const glm::vec3 &lightPos, const glm::vec3 &cameraPos);
 
+std::vector<glm::vec3> randomPointOnSphere(const SphericalLight &sphere, const int &amount);
+
+//Check if the generated points are on the backside of the sphere.
+bool checkRightHalf(const SphericalLight &sphere, const glm::vec3 &point, const float &distanceOfRay);
+
+glm::vec3 softShadow(const HitInfo &hitInfo, const Ray &ray, const SphericalLight &light, const BoundingVolumeHierarchy &bvh);
+
 // Returns a vector representing the RGB values computed by the Phong reflection model.
 glm::vec3 lightRay(const Ray &ray, const HitInfo &hitInfo, const Scene &scene, BoundingVolumeHierarchy &bvh);
 
