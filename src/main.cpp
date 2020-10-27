@@ -41,10 +41,10 @@ enum class ViewMode {
     RayTracing = 1
 };
 
-static glm::vec3 getFinalColor(const Scene& scene, const BoundingVolumeHierarchy& bvh, Ray ray)
+static glm::vec3 getFinalColor(const Scene& scene, BoundingVolumeHierarchy& bvh, Ray ray)
 {
     HitInfo hitInfo;
-    if (bvh.intersect(ray, hitInfo)) {
+    if (bvh.intersect(ray, hitInfo)) {        
         return recursiveRayTrace(ray, hitInfo, scene, bvh, 0);
     } else {
         // Draw a red debug ray if the ray missed.
@@ -57,7 +57,7 @@ static void setOpenGLMatrices(const Trackball& camera);
 static void renderOpenGL(const Scene& scene, const Trackball& camera, int selectedLight);
 
 // This is the main rendering function. You are free to change this function in any way (including the function signature).
-static void renderRayTracing(const Scene& scene, const Trackball& camera, const BoundingVolumeHierarchy& bvh, Screen& screen)
+static void renderRayTracing(const Scene& scene, const Trackball& camera, BoundingVolumeHierarchy& bvh, Screen& screen)
 {
 #ifdef USE_OPENMP
 #pragma omp parallel for

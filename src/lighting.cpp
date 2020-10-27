@@ -29,7 +29,7 @@ glm::vec3 phongSpecularOnly(const HitInfo &hitInfo, const glm::vec3 &vertexPos, 
     return hitInfo.material.ks * glm::pow(glm::max(glm::dot(R, V), 0.f), hitInfo.material.shininess);
 }
 
-glm::vec3 lightRay(const Ray &ray, const HitInfo &hitInfo, const Scene &scene, const BoundingVolumeHierarchy &bvh)
+glm::vec3 lightRay(const Ray &ray, const HitInfo &hitInfo, const Scene &scene, BoundingVolumeHierarchy &bvh)
 {
     // Calculate the point of intersection.
     glm::vec3 p = ray.origin + ray.t * ray.direction;
@@ -51,7 +51,7 @@ glm::vec3 lightRay(const Ray &ray, const HitInfo &hitInfo, const Scene &scene, c
     return lighting;
 }
 
-bool shadowRay(const Ray &ray, const PointLight &light, const BoundingVolumeHierarchy &bvh)
+bool shadowRay(const Ray &ray, const PointLight &light, BoundingVolumeHierarchy &bvh)
 {
     // Calculate the point of intersection and the shadow ray direction.
     glm::vec3 p = ray.origin + ray.t * ray.direction;
@@ -73,7 +73,7 @@ bool shadowRay(const Ray &ray, const PointLight &light, const BoundingVolumeHier
 }
 
 glm::vec3 recursiveRayTrace(const Ray &intersectionRay, const HitInfo &hitInfo, const Scene &scene,
-                            const BoundingVolumeHierarchy &bvh, int rayLevel)
+                            BoundingVolumeHierarchy &bvh, int rayLevel)
 {
     if (rayLevel < RECURSION_LIMIT) // Control the recursion level.
     {   

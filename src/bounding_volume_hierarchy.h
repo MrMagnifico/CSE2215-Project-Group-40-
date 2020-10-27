@@ -32,11 +32,13 @@ public:
     // Return true if something is hit, returns false otherwise.
     // Only find hits if they are closer than t stored in the ray and the intersection
     // is on the correct side of the origin (the new t >= 0).
-    bool intersect(Ray &ray, HitInfo &hitInfo) const;
+    bool intersect(Ray &ray, HitInfo &hitInfo);
+    
+    std::vector<BVHNode> nodeVector; // Stores all of the BVH tree's nodes.
 
 private:
     Scene *m_pScene;
-    std::vector<BVHNode> nodeVector; // Stores all of the BVH tree's nodes.
+
     int maxLevel;                    // Max level the tree should grow to.
     int minTriangles;                // Minimum number of triangles required for a node to split itself and not become a leaf node.
     int sahBins;                     // Number of bins to use for SAH.
@@ -50,6 +52,8 @@ private:
     * 
     * Returns: The index of the created node in the node vector.
     */
+    bool intersectRecurseMethod(Ray& ray, HitInfo& hitInfo, BVHNode& node); 
+
     int constructNode(Scene &scene, std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices, int current_level);
 
     // Compute borders of the bounding box.
