@@ -21,7 +21,8 @@ add_executable(FinalProject2
 	"src/image.cpp"
 	"src/stb_image.cpp" 
 	"src/lighting.cpp"
-	"src/ray_debug.cpp")
+	"src/ray_debug.cpp"
+	"src/post_processing.cpp")
 # Link to all dependencies / make their header files available.
 target_link_libraries(FinalProject2 PRIVATE CGFramework OptionalPackages)
 target_compile_features(FinalProject2 PRIVATE cxx_std_17) # C++17
