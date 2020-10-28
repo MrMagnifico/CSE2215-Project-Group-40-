@@ -1,5 +1,8 @@
 \documentclass{article}
 
+\usepackage{babel}
+\usepackage{blindtext}
+\usepackage{caption}
 \usepackage{graphicx}
 
 \author{Ee Xuan Tan (4907531) \and Elvira Voorneveld (4930975) \and William Narchi (5046122)}
@@ -20,6 +23,7 @@
         Hard Shadows    &0\%    &100\%  &0\%\\
         Soft Shadows    &100\%  &0\%    &0\%\\
         BVH             &40\%  &20\%    &40\%\\
+        Anti-aliasing   &0\%    &0\%    &100\%\\
         \hline
     \end{tabular}
 
@@ -120,8 +124,24 @@
         The tenth level of the BVH using SAH.
     \end{center}
 
+    \subsection{Extra Requirements}
+    \subsubsection{Anti-aliasing}
+    A simple super-sampling anti-aliasing method that renders at a higher resolution and downsamples.
+    This relies on increasing the render resolution of each axis by a power of two (adjustable via \emph{SAMPLING\_FACTOR}),
+    then averaging the rendered 'pixel' values as appropriate and using that as the actual screen pixel value.
+
+    \begin{figure}[!htb]
+        \minipage{0.49\textwidth}
+          \includegraphics[width=\linewidth , height=6cm]{images/supersampling_non_supersampled.png}
+          \caption*{Render without super-sampling}
+        \endminipage\hfill
+        \minipage{0.49\textwidth}
+          \includegraphics[width=\linewidth , height=6cm]{images/supersampling_supersampled.png}
+          \caption*{Render with 2x super-sampling}
+        \endminipage
+    \end{figure}
+
     \section{Models}
-    To be constructed
 
     \section{Performance Test}
     To be constructed

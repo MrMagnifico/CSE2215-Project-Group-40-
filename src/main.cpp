@@ -27,9 +27,10 @@ DISABLE_WARNINGS_POP()
 #include <omp.h>
 #endif
 
-const int BVH_DEPTH = 25;
-const int BVH_MIN_NODE_TRIANGLES = 10;
-const int BVH_BINS = 5;
+const int BVH_DEPTH = 25;              // Max BVH tree depth.
+const int BVH_MIN_NODE_TRIANGLES = 10; // Min number of triangles required to for BVH node to attempt to spawn child nodes.
+const int BVH_BINS = 5;                // Number of bins to use for BVH SAH.
+const int SAMPLING_FACTOR = 2;         // Super-sampling factor (1=>1x super-sampling, 2=>2x super-sampling, 3=>4x super-sampling, etc).
 
 // This is the main application. The code in here does not need to be modified.
 constexpr glm::ivec2 windowResolution { 800, 800 };
@@ -57,22 +58,56 @@ static void setOpenGLMatrices(const Trackball& camera);
 static void renderOpenGL(const Scene& scene, const Trackball& camera, int selectedLight);
 
 // This is the main rendering function. You are free to change this function in any way (including the function signature).
-static void renderRayTracing(const Scene& scene, const Trackball& camera, BoundingVolumeHierarchy& bvh, Screen& screen)
+static void renderRayTracing(const Scene& scene, const Trackball& camera, BoundingVolumeHierarchy& bvh, Screen& screen, int sample_factor)
 {
+    // Compute necessary constants.
+    int sample_multiplier = std::pow(2, sample_factor - 1);
+    int sample_width = windowResolution.x * sample_multiplier;
+    int sample_height = windowResolution.y * sample_multiplier;
+    glm::vec3 sampling_coefficient = {sample_multiplier * sample_multiplier, sample_multiplier * sample_multiplier, sample_multiplier * sample_multiplier};
+
+    // Create suitable sized 2D vector to house sample values.
+    std::vector<std::vector<glm::vec3>> pixel_array;
+    pixel_array.resize(sample_height);
+
 #ifdef USE_OPENMP
 #pragma omp parallel for
 #endif
-    for (int y = 0; y < windowResolution.y; y++) {
-        for (int x = 0; x != windowResolution.x; x++) {
+    // Populate array of sample values.
+    for (int y = 0; y < sample_height; y++) {
+        for (int x = 0; x != sample_width; x++) {
             // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.
             const glm::vec2 normalizedPixelPos {
-                float(x) / windowResolution.x * 2.0f - 1.0f,
-                float(y) / windowResolution.y * 2.0f - 1.0f
+                float(x) / sample_width * 2.0f - 1.0f,
+                float(y) / sample_height * 2.0f - 1.0f
             };
             const Ray cameraRay = camera.generateRay(normalizedPixelPos);
-            screen.setPixel(x, y, getFinalColor(scene, bvh, cameraRay));
+            pixel_array[y].push_back(getFinalColor(scene, bvh, cameraRay));
         }
     }
+
+#ifdef USE_OPENMP
+#pragma omp parallel for
+#endif
+    // Sample pixel array.
+    for (int y = 0; y < windowResolution.y; y++)
+    {
+        for (int x = 0; x != windowResolution.x; x++)
+        {
+            // Sample 'boxes' of pixels starting from the top-left corner
+            glm::vec3 pixel_value = {0.0f, 0.0f, 0.0f};
+            int corner_x = x * sample_multiplier;
+            int corner_y = y * sample_multiplier;
+            for (int y_step = 0; y_step < sample_multiplier; y_step++)
+            {
+                for (int x_step = 0; x_step < sample_multiplier; x_step++)
+                {
+                    pixel_value += pixel_array[corner_y + y_step][corner_x + x_step];
+                }
+            }
+            screen.setPixel(x, y, pixel_value / sampling_coefficient);
+        }
+    }    
 }
 
 int main(int argc, char** argv)
@@ -137,7 +172,7 @@ int main(int argc, char** argv)
             {
                 using clock = std::chrono::high_resolution_clock;
                 const auto start = clock::now();
-                renderRayTracing(scene, camera, bvh, screen);
+                renderRayTracing(scene, camera, bvh, screen, SAMPLING_FACTOR);
                 const auto end = clock::now();
                 std::cout << "Time to render image: " << std::chrono::duration<float, std::milli>(end - start).count() << " milliseconds" << std::endl;
             }
@@ -228,7 +263,7 @@ int main(int argc, char** argv)
         } break;
         case ViewMode::RayTracing: {
             screen.clear(glm::vec3(0.0f));
-            renderRayTracing(scene, camera, bvh, screen);
+            renderRayTracing(scene, camera, bvh, screen, SAMPLING_FACTOR);
             screen.setPixel(0, 0, glm::vec3(1.0f));
             screen.draw(); // Takes the image generated using ray tracing and outputs it to the screen using OpenGL.
         } break;
