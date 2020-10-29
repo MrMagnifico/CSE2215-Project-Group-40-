@@ -12,3 +12,4 @@ report/*.fdb_latexmk
 
 #Single files
 assignment.html
+CMakeSettings.json

@@ -8,6 +8,7 @@
 #include "window.h"
 #include "lighting.h"
 #include "ray_debug.h"
+#include "post_processing.h"
 // Disable compiler warnings in third-party code (which we cannot change).
 DISABLE_WARNINGS_PUSH()
 #include <glm/gtc/type_ptr.hpp>
@@ -30,7 +31,7 @@ DISABLE_WARNINGS_POP()
 const int BVH_DEPTH = 25;              // Max BVH tree depth.
 const int BVH_MIN_NODE_TRIANGLES = 10; // Min number of triangles required to for BVH node to attempt to spawn child nodes.
 const int BVH_BINS = 5;                // Number of bins to use for BVH SAH.
-const int SAMPLING_FACTOR = 2;         // Super-sampling factor (1=>1x super-sampling, 2=>2x super-sampling, 3=>4x super-sampling, etc).
+const int SAMPLING_FACTOR = 1;         // Super-sampling factor (1=>1x super-sampling, 2=>2x super-sampling, 3=>4x super-sampling, etc).
 
 // This is the main application. The code in here does not need to be modified.
 constexpr glm::ivec2 windowResolution { 800, 800 };
@@ -66,9 +67,9 @@ static void renderRayTracing(const Scene& scene, const Trackball& camera, Boundi
     int sample_height = windowResolution.y * sample_multiplier;
     glm::vec3 sampling_coefficient = {sample_multiplier * sample_multiplier, sample_multiplier * sample_multiplier, sample_multiplier * sample_multiplier};
 
-    // Create suitable sized 2D vector to house sample values.
-    std::vector<std::vector<glm::vec3>> pixel_array;
-    pixel_array.resize(sample_height);
+    // Create suitably sized 2D vector to house sample values.
+    std::vector<std::vector<glm::vec3>> sample_array;
+    sample_array.resize(sample_height);
 
 #ifdef USE_OPENMP
 #pragma omp parallel for
@@ -82,9 +83,13 @@ static void renderRayTracing(const Scene& scene, const Trackball& camera, Boundi
                 float(y) / sample_height * 2.0f - 1.0f
             };
             const Ray cameraRay = camera.generateRay(normalizedPixelPos);
-            pixel_array[y].push_back(getFinalColor(scene, bvh, cameraRay));
+            sample_array[y].push_back(getFinalColor(scene, bvh, cameraRay));
         }
     }
+
+    // Create suitably sized 2D vector to house pixel values before post-processing.
+    std::vector<std::vector<glm::vec3>> pixel_array;
+    pixel_array.resize(windowResolution.y);
 
 #ifdef USE_OPENMP
 #pragma omp parallel for
@@ -102,12 +107,15 @@ static void renderRayTracing(const Scene& scene, const Trackball& camera, Boundi
             {
                 for (int x_step = 0; x_step < sample_multiplier; x_step++)
                 {
-                    pixel_value += pixel_array[corner_y + y_step][corner_x + x_step];
+                    pixel_value += sample_array[corner_y + y_step][corner_x + x_step];
                 }
             }
-            screen.setPixel(x, y, pixel_value / sampling_coefficient);
+            pixel_array[y].push_back(pixel_value / sampling_coefficient);
         }
-    }    
+    }
+
+    // Run through post-processing pipeline and render.
+    postProcessingPipeline(screen, windowResolution, pixel_array);
 }
 
 int main(int argc, char** argv)
