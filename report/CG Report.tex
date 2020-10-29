@@ -123,6 +123,9 @@
     BVH, it will recursively check if a ray shot at the scene will intersect with the parent AABB or any of 
     its children. If there is no intersection with any of the leaf nodes, there is no intersection with the 
     model. Otherwise, all triangles in the respective leaf node will be checked for intersection.
+    Two constructors are provided for the BVH: one where the maximum tree depth can be manually set;
+    and one where the number of triangles in the scene is used as a heuristic to determine the maximum
+    tree depth.
 
     \begin{figure}[!htb]
         \minipage{0.49\textwidth}

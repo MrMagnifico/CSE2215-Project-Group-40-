@@ -18,6 +18,18 @@ public:
      * 
      * Parameters:
      * pScene: Pointer to the scene to be rendered.
+     * min_triangles: Minimum number of triangles required for a node to attempt a split.
+     * sah_bins: Number of bins to use for SAH (must be >=2).
+     * 
+     * Returns: A BVH tree to use for accelerating ray intersections.
+     */
+    BoundingVolumeHierarchy(Scene *pScene, int min_triangles, int sah_bins);
+
+    /**Construct a BVH tree (starting at level 1) from the given Scene.
+     * Uses the number of triangles in the scene as a heuristic to determine the max depth of the tree.
+     * 
+     * Parameters:
+     * pScene: Pointer to the scene to be rendered.
      * max_level: The maximum level to which the tree should grow to.
      * min_triangles: Minimum number of triangles required for a node to attempt a split.
      * sah_bins: Number of bins to use for SAH (must be >=2).

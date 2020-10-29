@@ -1,7 +1,33 @@
 #include "bounding_volume_hierarchy.h"
 #include "draw.h"
 #include <glm/vector_relational.hpp>
+#include <cmath>
 #include <limits>
+
+BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene *pScene, int min_triangles, int sah_bins)
+    : m_pScene(pScene)
+{
+    // Construct indices for all triangles.
+    std::vector<std::pair<int, std::vector<int>>> all_mesh_triangle_indices;
+    for (int mesh_index = 0; mesh_index < pScene->meshes.size(); mesh_index++)
+    {
+        Mesh &curr_mesh = pScene->meshes[mesh_index];
+        std::pair<int, std::vector<int>> mesh_triangle_pairs = {mesh_index, std::vector<int>{}};
+        for (int triangle_index = 0; triangle_index < curr_mesh.triangles.size(); triangle_index++)
+        {
+            mesh_triangle_pairs.second.push_back(triangle_index);
+        }
+        all_mesh_triangle_indices.push_back(mesh_triangle_pairs);
+    }
+
+    // Use number of triangles as heuristic to determine a max depth and assign values to other variables.
+    maxLevel = std::ceil(std::log2(countTriangles(all_mesh_triangle_indices) + 1)) ;
+    minTriangles = min_triangles;
+    sahBins = sah_bins;
+
+    // Construct parent node.
+    constructNode(all_mesh_triangle_indices, 1);
+}
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene *pScene, int max_level, int min_triangles, int sah_bins)
     : m_pScene(pScene)

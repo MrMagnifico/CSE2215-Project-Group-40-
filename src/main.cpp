@@ -203,7 +203,7 @@ int main(int argc, char** argv)
             if (ImGui::Combo("Scenes", reinterpret_cast<int*>(&sceneType), items.data(), int(items.size()))) {
                 optDebugRays.reset();
                 scene = loadScene(sceneType, dataPath);
-                bvh = BoundingVolumeHierarchy(&scene, BVH_DEPTH, BVH_MIN_NODE_TRIANGLES, BVH_BINS);
+                bvh = BoundingVolumeHierarchy(&scene, BVH_MIN_NODE_TRIANGLES, BVH_BINS);
                 if (optDebugRays) {
                     for (Ray &ray : optDebugRays.value())
                     {
