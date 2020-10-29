@@ -65,9 +65,9 @@ static void renderRayTracing(const Scene& scene, const Trackball& camera, Boundi
     int sample_multiplier = std::pow(2, sample_factor - 1);
     int sample_width = windowResolution.x * sample_multiplier;
     int sample_height = windowResolution.y * sample_multiplier;
-    glm::vec3 sampling_coefficient = {sample_multiplier * sample_multiplier, sample_multiplier * sample_multiplier, sample_multiplier * sample_multiplier};
+    glm::vec3 sampling_coefficient {sample_multiplier * sample_multiplier};
 
-    // Create suitably sized 2D vector to house sample values.
+    // Create a suitably sized 2D vector to house sample values.
     std::vector<std::vector<glm::vec3>> sample_array;
     sample_array.resize(sample_height);
 
@@ -87,7 +87,7 @@ static void renderRayTracing(const Scene& scene, const Trackball& camera, Boundi
         }
     }
 
-    // Create suitably sized 2D vector to house pixel values before post-processing.
+    // Create a suitably sized 2D vector to house pixel values before post-processing.
     std::vector<std::vector<glm::vec3>> pixel_array;
     pixel_array.resize(windowResolution.y);
 
@@ -118,6 +118,44 @@ static void renderRayTracing(const Scene& scene, const Trackball& camera, Boundi
     postProcessingPipeline(screen, windowResolution, pixel_array);
 }
 
+/**Generate debug rays according to the chosen sample factor.
+ * 
+ * Parameters:
+ * camera: The viewport Trackball object
+ * pixel_center: Non-normalised pixel coordinates of the pixel whose sample rays are to be visualised (Assumes (0,0) origin at bottom-left corner)
+ * sample_factor: Governs super-sampling factor. See documentation of SAMPLING_FACTOR for details.
+ */
+std::optional<std::vector<Ray>> generateDebugRays(const Trackball &camera, const glm::vec2 &pixel_center, int sample_factor)
+{
+    // Compute necessary constants.
+    int sample_multiplier = std::pow(2, sample_factor - 1);
+    float atomic_step = 1.0f / sample_multiplier;
+
+    // Create a vector to store the debug rays.
+    std::optional<std::vector<Ray>> debug_rays {std::vector<Ray>{}};
+
+    // 'Walk' in horizontal and vertical portions to emulate positions of super-sampled rays.
+    for (int y_step = -(sample_multiplier - 1); y_step < sample_multiplier; y_step++)
+    {
+        if (y_step == 0 && sample_factor != 1) {continue;} // Remove unnecessary center rays when appropriate.
+        for (int x_step = -(sample_multiplier - 1); x_step < sample_multiplier; x_step++)
+        {
+            if (x_step == 0 && sample_factor != 1) {continue;} // Remove unnecessary center rays when appropriate.
+
+            // Compute sample position and generate ray.
+            float sample_x = pixel_center.x + (x_step * atomic_step);
+            float sample_y = pixel_center.y + (y_step * atomic_step);
+            const glm::vec2 normalizedSamplePos = {
+                sample_x / windowResolution.x * 2.0f - 1.0f,
+                sample_y / windowResolution.y * 2.0f - 1.0f
+            };
+            const Ray sample_ray = camera.generateRay(normalizedSamplePos);
+            debug_rays.value().push_back(sample_ray);
+        }
+    }
+    return debug_rays;
+}
+
 int main(int argc, char** argv)
 {
     Trackball::printHelp();
@@ -130,7 +168,7 @@ int main(int argc, char** argv)
     camera.setCamera(glm::vec3(0.0f, 0.0f, 0.0f), glm::radians(glm::vec3(20.0f, 20.0f, 0.0f)), 3.0f);
 
     SceneType sceneType { SceneType::SingleTriangle };
-    std::optional<Ray> optDebugRay;
+    std::optional<std::vector<Ray>> optDebugRays;
     Scene scene = loadScene(sceneType, dataPath);
     BoundingVolumeHierarchy bvh {&scene, BVH_DEPTH, BVH_MIN_NODE_TRIANGLES, BVH_BINS};
 
@@ -143,8 +181,8 @@ int main(int argc, char** argv)
             switch (key) {
             case GLFW_KEY_R: {
                 // Shoot a ray. Produce a ray from camera to the far plane.
-                const auto tmp = window.getNormalizedCursorPos();
-                optDebugRay = camera.generateRay(tmp * 2.0f - 1.0f);
+                const auto tmp = window.getCursorPos();
+                optDebugRays = generateDebugRays(camera, tmp, SAMPLING_FACTOR);
                 viewMode = ViewMode::Rasterization;
             } break;
             case GLFW_KEY_ESCAPE: {
@@ -163,12 +201,15 @@ int main(int argc, char** argv)
         {
             constexpr std::array items { "SingleTriangle", "Cube", "Cornell Box (with mirror)", "Cornell Box (spherical light and mirror)", "Monkey", "Dragon", /* "AABBs",*/ "Spheres", /*"Mixed",*/ "Custom" };
             if (ImGui::Combo("Scenes", reinterpret_cast<int*>(&sceneType), items.data(), int(items.size()))) {
-                optDebugRay.reset();
+                optDebugRays.reset();
                 scene = loadScene(sceneType, dataPath);
                 bvh = BoundingVolumeHierarchy(&scene, BVH_DEPTH, BVH_MIN_NODE_TRIANGLES, BVH_BINS);
-                if (optDebugRay) {
-                    HitInfo dummy {};
-                    bvh.intersect(*optDebugRay, dummy);
+                if (optDebugRays) {
+                    for (Ray &ray : optDebugRays.value())
+                    {
+                        HitInfo dummy {};
+                        bvh.intersect(ray, dummy);
+                    }
                 }
             }
         }
@@ -260,11 +301,14 @@ int main(int argc, char** argv)
         case ViewMode::Rasterization: {
             glPushAttrib(GL_ALL_ATTRIB_BITS);
             renderOpenGL(scene, camera, selectedLight);
-            if (optDebugRay) {
+            if (optDebugRays) {
                 // Call getFinalColor for the debug ray. Ignore the result but tell the function that it should
                 // draw the rays instead.
                 enableDrawRay = true;
-                (void)getFinalColor(scene, bvh, *optDebugRay);
+                for (Ray &ray : optDebugRays.value())
+                {
+                    (void)getFinalColor(scene, bvh, ray);
+                }
                 enableDrawRay = false;
             }
             glPopAttrib();

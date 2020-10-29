@@ -18,13 +18,14 @@
         \hline
         \textbf{Feature} &\textbf{Ee Xuan} &\textbf{Elvira} &\textbf{William}\\
         \hline
-        Shading         &0\%    &100\%  &0\%\\
-        Recursion       &0\%    &0\%    &100\%\\
-        Hard Shadows    &0\%    &100\%  &0\%\\
-        Soft Shadows    &100\%  &0\%    &0\%\\
-        BVH             &40\%  &20\%    &40\%\\
-        Anti-aliasing   &0\%    &0\%    &100\%\\
-        Bloom Filter    &0\%    &0\%    &100\%\\
+        Shading                         &0\%    &100\%  &0\%\\
+        Recursion                       &0\%    &0\%    &100\%\\
+        Hard Shadows                    &0\%    &100\%  &0\%\\
+        Soft Shadows                    &100\%  &0\%    &0\%\\
+        BVH                             &40\%  &20\%    &40\%\\
+        Anti-aliasing                   &0\%    &0\%    &100\%\\
+        Bloom Filter                    &0\%    &0\%    &100\%\\
+        Multiple rays per pixel         &0\%    &0\%    &100\%\\
         \hline
     \end{tabular}
 
@@ -126,11 +127,24 @@
     \end{center}
 
     \subsection{Extra Requirements}
-    \subsubsection{Anti-aliasing}
-    A simple super-sampling anti-aliasing method that renders at a higher resolution and downsamples.
-    This relies on increasing the render resolution of each axis by a power of two (adjustable via \emph{SAMPLING\_FACTOR}),
-    then averaging the rendered 'pixel' values as appropriate and using that as the actual screen pixel value.
+    \subsubsection{Cast Multiple Rays Per Pixel / Anti-Aliasing}
+    A simple super-sampling anti-aliasing method that renders multiple rays per pixel (in effect, rendering at a higher resolution) using a uniform distribution of samples.
+    The colour values of the sample rays are then averaged with no weighting to produce the final colour value.
+    The exact degree of super-sampling can be adjusted via the \emph{SAMPLING\_FACTOR} variable.
 
+    \begin{center}
+        \includegraphics[scale=0.80]{images/supersampling_debugger.png}
+
+        {\footnotesize Visual debug at a 2x super-sampling ratio showing 4 rays in total
+        
+        (rays are projected from a far distance for easier demonstration)\par}
+    \end{center}
+
+    As can be clearly seen, the end result is a much smoother image,
+    with far fewer visible jagged edges and higher overall fidelity.
+
+    \newpage
+    
     \begin{figure}[!htb]
         \minipage{0.49\textwidth}
           \includegraphics[width=\linewidth , height=6cm]{images/supersampling_non_supersampled.png}
