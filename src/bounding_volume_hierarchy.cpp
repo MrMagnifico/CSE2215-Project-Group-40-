@@ -130,7 +130,7 @@ bool BoundingVolumeHierarchy::bvhIntersect(Ray& ray, HitInfo& hitInfo, BVHNode& 
                 current_mesh.vertices[current_triangle[2]]};
             if (intersectRayWithTriangle(vertices[0].p, vertices[1].p, vertices[2].p, ray, hitInfo))
             {
-                //barycentricInterpolation(vertices, ray.origin + ray.t * ray.direction, hitInfo);
+                barycentricInterpolation(vertices, ray.origin + ray.t * ray.direction, hitInfo);
                 hitInfo.material = current_mesh.material;
                 hit = true;
             }
