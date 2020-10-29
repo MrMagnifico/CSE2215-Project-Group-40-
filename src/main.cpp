@@ -46,8 +46,9 @@ enum class ViewMode {
 static glm::vec3 getFinalColor(const Scene& scene, BoundingVolumeHierarchy& bvh, Ray ray)
 {
     HitInfo hitInfo;
-    if (bvh.intersect(ray, hitInfo)) {        
-        return recursiveRayTrace(ray, hitInfo, scene, bvh, 0);
+    if (bvh.intersect(ray, hitInfo)) {
+        return lightRay(ray, hitInfo, scene, bvh);
+        //return recursiveRayTrace(ray, hitInfo, scene, bvh, 0);
     } else {
         // Draw a red debug ray if the ray missed.
         drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
@@ -65,14 +66,17 @@ static void renderRayTracing(const Scene& scene, const Trackball& camera, Boundi
     int sample_multiplier = std::pow(2, sample_factor - 1);
     int sample_width = windowResolution.x * sample_multiplier;
     int sample_height = windowResolution.y * sample_multiplier;
-    glm::vec3 sampling_coefficient {sample_multiplier * sample_multiplier};
+    glm::vec3 sampling_coefficient = {
+        sample_multiplier * sample_multiplier,
+        sample_multiplier * sample_multiplier,
+        sample_multiplier * sample_multiplier };
 
     // Create a suitably sized 2D vector to house sample values.
     std::vector<std::vector<glm::vec3>> sample_array;
     sample_array.resize(sample_height);
 
 #ifdef USE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for schedule(guided)
 #endif
     // Populate array of sample values.
     for (int y = 0; y < sample_height; y++) {
@@ -92,7 +96,7 @@ static void renderRayTracing(const Scene& scene, const Trackball& camera, Boundi
     pixel_array.resize(windowResolution.y);
 
 #ifdef USE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for schedule(guided)
 #endif
     // Sample pixel array.
     for (int y = 0; y < windowResolution.y; y++)

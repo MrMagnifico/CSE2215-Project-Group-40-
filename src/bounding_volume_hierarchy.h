@@ -40,6 +40,8 @@ public:
 
     void debugDraw(int level);
     int numLevels();
+    void barycentricInterpolation(std::vector<Vertex> vertices, glm::vec3 p, HitInfo& hitInfo);
+    float triangleArea(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2);
 
     // Return true if something is hit, returns false otherwise.
     // Only find hits if they are closer than t stored in the ray and the intersection

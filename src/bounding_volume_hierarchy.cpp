@@ -1,8 +1,10 @@
 #include "bounding_volume_hierarchy.h"
 #include "draw.h"
+#include <glm/geometric.hpp>
 #include <glm/vector_relational.hpp>
 #include <cmath>
 #include <limits>
+#include <iostream> // FOR DEBUGGING
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene *pScene, int min_triangles, int sah_bins)
     : m_pScene(pScene)
@@ -69,6 +71,32 @@ int BoundingVolumeHierarchy::numLevels()
     return max_level;
 }
 
+void BoundingVolumeHierarchy::barycentricInterpolation(std::vector<Vertex> vertices, glm::vec3 p, HitInfo& hitInfo)
+{
+    Vertex v0 = vertices[0];
+    Vertex v1 = vertices[1];
+    Vertex v2 = vertices[2];
+    
+    float area = triangleArea(v0.p, v1.p, v2.p);
+    float areaAlpha = triangleArea(p, v1.p, v2.p);
+    float areaBeta = triangleArea(p, v0.p, v2.p);
+    float areaGamma = triangleArea(p, v0.p, v1.p);
+
+    float alpha = areaAlpha / area;
+    float beta = areaBeta / area;
+    float gamma = 1 - alpha - beta;
+
+    hitInfo.normal = alpha * v0.n + beta * v1.n + gamma * v2.n;
+}
+
+float BoundingVolumeHierarchy::triangleArea(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2) {
+    float a = glm::distance(v0, v1);
+    float b = glm::distance(v1, v2);
+    float c = glm::distance(v2, v0);
+    float s = (a + b + c) / 2;
+    return glm::sqrt(s * (s - a) * (s - b) * (s - c));
+}
+
 bool BoundingVolumeHierarchy::intersect(Ray &ray, HitInfo &hitInfo) {return bvhIntersect(ray, hitInfo, nodeVector[0]);}
 
 bool BoundingVolumeHierarchy::bvhIntersect(Ray& ray, HitInfo& hitInfo, BVHNode& node)
@@ -102,6 +130,7 @@ bool BoundingVolumeHierarchy::bvhIntersect(Ray& ray, HitInfo& hitInfo, BVHNode& 
                 current_mesh.vertices[current_triangle[2]]};
             if (intersectRayWithTriangle(vertices[0].p, vertices[1].p, vertices[2].p, ray, hitInfo))
             {
+                //barycentricInterpolation(vertices, ray.origin + ray.t * ray.direction, hitInfo);
                 hitInfo.material = current_mesh.material;
                 hit = true;
             }
