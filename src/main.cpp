@@ -43,12 +43,11 @@ enum class ViewMode {
     RayTracing = 1
 };
 
-static glm::vec3 getFinalColor(const Scene& scene, BoundingVolumeHierarchy& bvh, Ray ray)
+static glm::vec3 getFinalColor(const Scene& scene, BoundingVolumeHierarchy& bvh, Ray &ray)
 {
     HitInfo hitInfo;
     if (bvh.intersect(ray, hitInfo)) {
-        return lightRay(ray, hitInfo, scene, bvh);
-        //return recursiveRayTrace(ray, hitInfo, scene, bvh, 0);
+        return recursiveRayTrace(ray, hitInfo, scene, bvh, 0);
     } else {
         // Draw a red debug ray if the ray missed.
         drawRay(ray, glm::vec3(1.0f, 0.0f, 0.0f));
@@ -69,16 +68,18 @@ static void renderRayTracing(const Scene& scene, const Trackball& camera, Boundi
     glm::vec3 sampling_coefficient = {
         sample_multiplier * sample_multiplier,
         sample_multiplier * sample_multiplier,
-        sample_multiplier * sample_multiplier };
+        sample_multiplier * sample_multiplier};
 
-    // Create a suitably sized 2D vector to house sample values.
+    // Create suitably sized 2D vectors to house sample colour and depth values.
     std::vector<std::vector<glm::vec3>> sample_array;
     sample_array.resize(sample_height);
+    std::vector<std::vector<float>> sample_depths;
+    sample_depths.resize(sample_height);
 
-#ifdef USE_OPENMP
-#pragma omp parallel for schedule(guided)
-#endif
     // Populate array of sample values.
+    #ifdef USE_OPENMP
+    #pragma omp parallel for schedule(guided)
+    #endif
     for (int y = 0; y < sample_height; y++) {
         for (int x = 0; x != sample_width; x++) {
             // NOTE: (-1, -1) at the bottom left of the screen, (+1, +1) at the top right of the screen.
@@ -86,25 +87,31 @@ static void renderRayTracing(const Scene& scene, const Trackball& camera, Boundi
                 float(x) / sample_width * 2.0f - 1.0f,
                 float(y) / sample_height * 2.0f - 1.0f
             };
-            const Ray cameraRay = camera.generateRay(normalizedPixelPos);
+            Ray cameraRay = camera.generateRay(normalizedPixelPos);
+
+            // Store sample value and sample depth.
             sample_array[y].push_back(getFinalColor(scene, bvh, cameraRay));
+            sample_depths[y].push_back(cameraRay.t * glm::length(cameraRay.direction));
         }
     }
 
     // Create a suitably sized 2D vector to house pixel values before post-processing.
     std::vector<std::vector<glm::vec3>> pixel_array;
     pixel_array.resize(windowResolution.y);
+    std::vector<std::vector<float>> pixel_depths;
+    pixel_depths.resize(windowResolution.y);
 
-#ifdef USE_OPENMP
-#pragma omp parallel for schedule(guided)
-#endif
     // Sample pixel array.
+    #ifdef USE_OPENMP
+    #pragma omp parallel for schedule(guided)
+    #endif
     for (int y = 0; y < windowResolution.y; y++)
     {
         for (int x = 0; x != windowResolution.x; x++)
         {
             // Sample 'boxes' of pixels starting from the top-left corner
             glm::vec3 pixel_value = {0.0f, 0.0f, 0.0f};
+            float depth_value = 0.0f;
             int corner_x = x * sample_multiplier;
             int corner_y = y * sample_multiplier;
             for (int y_step = 0; y_step < sample_multiplier; y_step++)
@@ -112,14 +119,16 @@ static void renderRayTracing(const Scene& scene, const Trackball& camera, Boundi
                 for (int x_step = 0; x_step < sample_multiplier; x_step++)
                 {
                     pixel_value += sample_array[corner_y + y_step][corner_x + x_step];
+                    depth_value += sample_depths[corner_y + y_step][corner_x + x_step];
                 }
             }
             pixel_array[y].push_back(pixel_value / sampling_coefficient);
+            pixel_depths[y].push_back(depth_value / (sample_multiplier * sample_multiplier));
         }
     }
 
     // Run through post-processing pipeline and render.
-    postProcessingPipeline(screen, windowResolution, pixel_array);
+    postProcessingPipeline(screen, windowResolution, pixel_array, pixel_depths);
 }
 
 /**Generate debug rays according to the chosen sample factor.
@@ -128,6 +137,8 @@ static void renderRayTracing(const Scene& scene, const Trackball& camera, Boundi
  * camera: The viewport Trackball object
  * pixel_center: Non-normalised pixel coordinates of the pixel whose sample rays are to be visualised (Assumes (0,0) origin at bottom-left corner)
  * sample_factor: Governs super-sampling factor. See documentation of SAMPLING_FACTOR for details.
+ * 
+ * Returns: A vector of debug rays, to be rendered in rasterization mode.
  */
 std::optional<std::vector<Ray>> generateDebugRays(const Trackball &camera, const glm::vec2 &pixel_center, int sample_factor)
 {
