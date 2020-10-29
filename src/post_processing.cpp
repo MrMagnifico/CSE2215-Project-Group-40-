@@ -1,10 +1,13 @@
 #include "post_processing.h"
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 
-const bool POST_PROCESS = true; // Enable/disable post-processing.
+const bool POST_PROCESS = false; // Enable/disable post-processing.
 
 // Bloom filter parameters.
-const float BLOOM_THRESHOLD = 0.95; // Threshold to use for filtering 'bright' pixels.
-const int BLOOM_BLUR_SIZE = 3;      // Size to use for the box filter used for blurring.
+const float BLOOM_THRESHOLD = 0.95f; // Threshold to use for filtering 'bright' pixels.
+const int BLOOM_BLUR_SIZE = 3;       // Size to use for the box filter used for blurring.
 
 void postProcessingPipeline(Screen &screen, const glm::ivec2 &windowResolution, std::vector<std::vector<glm::vec3>> &pixel_array)
 {
@@ -87,6 +90,7 @@ void bloomFilter(const glm::ivec2 &windowResolution, std::vector<std::vector<glm
 #ifdef USE_OPENMP
 #pragma omp parallel for
 #endif
+    // Add values of blurred pixels to un-processed pixels.
     for (int y = 0; y < windowResolution.y; y++)
     {
         for (int x = 0; x < windowResolution.x; x++)

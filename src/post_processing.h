@@ -6,7 +6,7 @@ DISABLE_WARNINGS_PUSH()
 #include <glm/geometric.hpp>
 DISABLE_WARNINGS_POP()
 
-// Handle the entire post-processing pipeline and render final image
+// Handle the entire post-processing pipeline and render final image.
 void postProcessingPipeline(Screen &screen, const glm::ivec2 &windowResolution, std::vector<std::vector<glm::vec3>> &pixel_array);
 
 /**Create a grid of blurred pixels using box blur, blurring pixels whose 'intensity' meets or exceeds threshold.
