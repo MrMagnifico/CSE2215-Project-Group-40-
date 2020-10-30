@@ -4,7 +4,8 @@
 #include <glm/vector_relational.hpp>
 #include <cmath>
 #include <limits>
-#include <iostream> // FOR DEBUGGING
+
+const bool BARYCENTRIC_INTERPOLATION = false;
 
 BoundingVolumeHierarchy::BoundingVolumeHierarchy(Scene *pScene, int min_triangles, int sah_bins)
     : m_pScene(pScene)
@@ -134,7 +135,7 @@ bool BoundingVolumeHierarchy::bvhIntersect(Ray& ray, HitInfo& hitInfo, BVHNode& 
                 current_mesh.vertices[current_triangle[2]]};
             if (intersectRayWithTriangle(vertices[0].p, vertices[1].p, vertices[2].p, ray, hitInfo))
             {
-                // barycentricInterpolation(vertices, ray.origin + ray.t * ray.direction, hitInfo); // ACTIVATES INTERPOLATION
+                if (BARYCENTRIC_INTERPOLATION) {barycentricInterpolation(vertices, ray.origin + ray.t * ray.direction, hitInfo);} // ACTIVATES INTERPOLATION
                 hitInfo.material = current_mesh.material;
                 hit = true;
             }
