@@ -11,7 +11,7 @@ DISABLE_WARNINGS_POP()
 #include <iostream>
 #include <limits>
 
-const int RECURSION_LIMIT = 5;      // Defines the maximal level of recursion to use.
+const int RECURSION_LIMIT = 3;      // Defines the maximal level of recursion to use.
 const float RAY_STEP = 1.0e-3f;     // Defines the 'step' to take in a ray's direction to prevent erroneous intersections.
 const int SPHERE_SAMPLE_LIMIT = 100; // Defines the maximal number of samples to compute when sampling a spherical light source.
 

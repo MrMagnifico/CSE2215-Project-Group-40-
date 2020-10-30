@@ -109,4 +109,10 @@ private:
 
     // Count the number of triangles contained in meshTriangleIndices.
     int countTriangles(std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices);
+
+    // Determine the axis with the greatest length in the box defined by limits.
+    int determineLongestAxis(std::vector<std::pair<float, float>> &limits);
+
+    // Compute the total surface area of the box defined by limits.
+    float computeTotalSurfaceArea(std::vector<std::pair<float, float>> &limits);
 };

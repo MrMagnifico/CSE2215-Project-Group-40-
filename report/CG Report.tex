@@ -117,7 +117,8 @@
     It starts off by indexing every triangle in the model and creating the first Axis-Aligned Bounding Box 
     (AABB) that contains all of the triangles. It then proceeds to split this bounding box until the maximum 
     level or the minimum amount of triangles is reached. Splitting relies on the use of alternating axes and 
-    bins to create a split boundary. It goes on to compute the cost function of these new splits, and only 
+    bins to create a split boundary. The longest axis in the bounding box being analysed is determined and
+    used for the split boundary. It goes on to compute the cost function of these new splits, and only 
     creates new nodes for them if they are more efficient to use than the original. After constructing the 
     BVH, it will recursively check if a ray shot at the scene will intersect with the parent AABB or any of 
     its children. If there is no intersection with any of the leaf nodes, there is no intersection with the 
