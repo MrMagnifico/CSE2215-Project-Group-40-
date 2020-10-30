@@ -13,7 +13,6 @@
     \maketitle
 
     \section{Work Distribution}
-    
     \begin{tabular}{ |p{2.5cm}||p{2.5cm}|p{2.5cm}|p{2.5cm}| }
         \hline
         \textbf{Feature} &\textbf{Ee Xuan} &\textbf{Elvira} &\textbf{William}\\
@@ -149,7 +148,20 @@
 
     \subsection{Extra Requirements}
     \subsubsection{Interpolation}
-    To be constructed
+    A simple method for computing interpolated values. When a ray hits a triangle, the alpha, beta and gamma 
+    values for the barycentric coordinates are calculated using the triangle areas. Those coordinates are 
+    used in combination with the vertex normals to compute the new and improved triangle normal.
+
+    \begin{figure}[!htb]
+      \minipage{0.49\textwidth}
+        \includegraphics[width=\linewidth, height=6cm]{images/monke_no_bary}
+        \caption*{Monkey without interpolation}
+      \endminipage\hfill
+      \minipage{0.49\textwidth}
+        \includegraphics[width=\linewidth, height=6cm]{images/monke_bary}
+        \caption*{Monkey with interpolation}
+      \endminipage
+  \end{figure}
 
     \subsubsection{Planar Area Light}
     To be constructed
@@ -173,10 +185,11 @@
     \end{figure}
     
     \subsubsection{Cast Multiple Rays Per Pixel / Anti-Aliasing}
-    A simple super-sampling anti-aliasing method that renders multiple rays per pixel (in effect, rendering at a higher resolution) using a uniform distribution of samples.
-    The colour values of the sample rays are then averaged with no weighting to produce the final colour value.
-    The exact degree of super-sampling can be adjusted via the \emph{SAMPLING\_FACTOR} variable.
-
+    A simple super-sampling anti-aliasing method that renders multiple rays per pixel (in effect, rendering 
+    at a higher resolution) using a uniform distribution of samples. The colour values of the sample rays are 
+    then averaged with no weighting to produce the final colour value. The exact degree of super-sampling can 
+    be adjusted via the \emph{SAMPLING\_FACTOR} variable.
+    
     \begin{center}
         \includegraphics[scale=0.75]{images/supersampling_debugger.png}
 
@@ -184,9 +197,8 @@
         
         (rays are projected from a far distance for easier demonstration)\par}
     \end{center}
-
-    As can be clearly seen, the end result is a much smoother image,
-    with far fewer visible jagged edges and higher overall fidelity.
+    As can clearly be seen in the figure below, the end result is a much smoother image, with far fewer 
+    visible jagged edges and higher overall fidelity.
 
     \begin{figure}[!htb]
         \minipage{0.49\textwidth}
@@ -200,8 +212,21 @@
     \end{figure}
 
     \section{Models}
-    To be constructed
+    No extra models were used.
 
     \section{Performance Test}
-    To be constructed
+    The following table shows the number of triangles contained in a scene, the time it took to render that 
+    scene without the extra features, with the extra features, and the amount of BVH levels that were 
+    constructed (up to a maximum of 25).
+
+    \begin{tabular}{ |p{2.8cm}||p{1.5cm}|p{1.5cm}|p{1.5cm}|p{1.5cm}| }
+      \hline
+      \textbf{Feature} &\textbf{Triangle} &\textbf{Cornell} &\textbf{Monkey} &\textbf{Dragon}\\
+      \hline
+      Number Triangles  &1      &32     &968    &87130\\
+      Render Time       &0s     &0s     &0s     &0s\\
+      Extra Time        &0s     &0s     &0s     &0s\\
+      BVH Levels        &0      &0      &0      &0\\
+      \hline
+  \end{tabular}
 \end{document}
