@@ -6,11 +6,11 @@
 const bool POST_PROCESS = false; // Enable/disable post-processing.
 
 // Bloom filter parameters.
-const float BLOOM_THRESHOLD = 0.95f; // Threshold to use for filtering 'bright' pixels.
-const int BLOOM_BLUR_SIZE = 3;       // Size to use for the box filter used for blurring.
+const float BLOOM_THRESHOLD = 0.90f; // Threshold to use for filtering 'bright' pixels.
+const int BLOOM_BLUR_SIZE = 50;      // Size to use for the box filter used for blurring.
 
 // Depth of field filter parameters.
-const int DOF_SAMPLE_SIZE = 1; // Determines no. of pixels to use for estimating focal point depth value (1=> 4 pixels, 2=> 16 pixels, 3=> 64, etc).
+const int DOF_SAMPLE_SIZE = 3; // Determines no. of pixels to use for estimating focal point depth value (1=> 4 pixels, 2=> 16 pixels, 3=> 64, etc).
 const int DOF_BLUR_SIZE = 3;   // Size to use for the box filter used for blurring.
 const int DOF_BLUR_SKEW = 3;   // Skews the results of the Gaussian PDF used for computing blur blend. Set to 1 for no skew. Increase for more aggressive blur.
 
@@ -126,9 +126,6 @@ DepthBuffer processDepthBuffer(std::vector<std::vector<float>> &depth_array, con
 
     // Compute average depth value of pixels in 'selection box'
     float sample_average = 0.0f;
-    #ifdef USE_OPENMP
-    #pragma omp parallel for schedule(guided)
-    #endif
     for (int y_offset = 0; y_offset < sample_edge_length; y_offset++)
     {
         int current_y = initial_y + y_offset;
@@ -142,9 +139,6 @@ DepthBuffer processDepthBuffer(std::vector<std::vector<float>> &depth_array, con
 
     // Compute standard deviation of all valid values (i.e: not float::max()) in depth buffer relative to the mean of the 'focal point' computed earlier.
     int valid_samples = 0;
-    #ifdef USE_OPENMP
-    #pragma omp parallel for schedule(guided)
-    #endif
     for (int y = 0; y < windowResolution.y; y++)
     {
         for (int x = 0; x < windowResolution.x; x++)
@@ -154,9 +148,6 @@ DepthBuffer processDepthBuffer(std::vector<std::vector<float>> &depth_array, con
         }
     }
     float std_dev = 0.0f;
-    #ifdef USE_OPENMP
-    #pragma omp parallel for schedule(guided)
-    #endif
     for (int y = 0; y < windowResolution.y; y++)
     {
         for (int x = 0; x < windowResolution.x; x++)
