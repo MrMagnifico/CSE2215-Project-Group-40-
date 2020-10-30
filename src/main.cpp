@@ -152,10 +152,10 @@ std::optional<std::vector<Ray>> generateDebugRays(const Trackball &camera, const
     // 'Walk' in horizontal and vertical portions to emulate positions of super-sampled rays.
     for (int y_step = -(sample_multiplier - 1); y_step < sample_multiplier; y_step++)
     {
-        if (y_step == 0 && sample_factor != 1) {continue;} // Remove unnecessary center rays when appropriate.
+        if (y_step % 2 == 0 && sample_factor != 1) {continue;} // Remove unnecessary center rays when appropriate.
         for (int x_step = -(sample_multiplier - 1); x_step < sample_multiplier; x_step++)
         {
-            if (x_step == 0 && sample_factor != 1) {continue;} // Remove unnecessary center rays when appropriate.
+            if (x_step % 2 == 0 && sample_factor != 1) {continue;} // Remove unnecessary center rays when appropriate.
 
             // Compute sample position and generate ray.
             float sample_x = pixel_center.x + (x_step * atomic_step);
