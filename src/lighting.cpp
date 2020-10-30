@@ -164,3 +164,13 @@ glm::vec3 recursiveRayTrace(const Ray &intersectionRay, const HitInfo &hitInfo, 
     }
     return glm::vec3{0.0f};
 }
+
+Ray debugRay(const glm::vec3& origin, const glm::vec3& direction, const float& t, const glm::vec3& colour)
+{
+    Ray ray;
+    ray.origin = origin;
+    ray.direction = direction;
+    ray.t = t;
+    drawRay(ray, colour);
+    return ray;
+}

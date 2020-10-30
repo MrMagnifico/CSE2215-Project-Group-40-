@@ -1,7 +1,7 @@
 #pragma once
 #include "disable_all_warnings.h"
 #include "ray_tracing.h"
-#include "ray_debug.h"
+#include "draw.h"
 #include "bounding_volume_hierarchy.h"
 DISABLE_WARNINGS_PUSH()
 #include <glm/vec3.hpp>
@@ -27,3 +27,5 @@ bool shadowRay(const Ray &ray, const PointLight &light, BoundingVolumeHierarchy 
 // Recursively computes the appropriate RGB value of a given ray.
 glm::vec3 recursiveRayTrace(const Ray &intersection_ray, const HitInfo &hitInfo, const Scene &scene,
                              BoundingVolumeHierarchy &bvh, int rayLevel);
+
+Ray debugRay(const glm::vec3& origin, const glm::vec3& direction, const float& t, const glm::vec3& colour);

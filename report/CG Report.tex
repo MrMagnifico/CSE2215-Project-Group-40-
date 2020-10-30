@@ -23,7 +23,6 @@
         Soft Shadows                   &100\%  &0\%    &0\%\\
         BVH                            &40\%   &20\%   &40\%\\
         Interpolation                  &0\%    &100\%  &0\%\\
-        Planar Area                    &100\%  &0\%    &0\%\\
         Bloom Filter                   &0\%    &0\%    &100\%\\
         Anti-aliasing                  &0\%    &0\%    &100\%\\
         Multiple rays                  &0\%    &0\%    &100\%\\
@@ -189,9 +188,6 @@
       \endminipage
     \end{figure}
 
-    \subsubsection{Planar Area Light}
-    To be constructed
-
     \subsubsection{Bloom Filter}
     A simple bloom filter that uses a box blur filter for the underlying blurring. It functions very similarly 
     to what was described in the slides for lecture 3, in that it culls pixels below a particular threshold 
@@ -210,6 +206,8 @@
         \endminipage
     \end{figure}
     
+    \newpage
+
     \subsubsection{Cast Multiple Rays Per Pixel / Anti-Aliasing}
     A simple super-sampling anti-aliasing method that renders multiple rays per pixel (in effect, rendering 
     at a higher resolution) using a uniform distribution of samples. The colour values of the sample rays are 
@@ -229,7 +227,7 @@
     \end{figure}
 
     \begin{center}
-      \includegraphics[scale=0.75]{images/supersampling_debugger.png}
+      \includegraphics[scale=0.55]{images/supersampling_debugger.png}
 
       Visual debug at a 2x super-sampling ratio showing 4 rays in total (rays are projected from a far 
       distance for easier demonstration)
@@ -237,17 +235,16 @@
 
     \subsubsection{Depth of Field}
     A post-processing depth of field filter that attempts to emulate real-life cameras. It works by first
-    creating a depth buffer using the \emph{t} values and vector components of the camera rays, and then computing an
-    average depth value of an adjustable sampling 'box' at the center of the viewport. This value is then
-    used as the mean value of a normal (Gaussian) distribution, and the standard deviation of all valid
-    pixels (ones whose rays interesected with an object) is computed and used as the standard deviation
-    for the distribution. A box blur filter is applied on all of the pixels in the viewport and then
-    the depth value of each pixel is input into the probability density function of the normal distribution
-    established earlier. The output is used to compute the blend between the blurred and sharp pixel values,
-    effectively allowing variable blurring depending on the depth of each pixel compared to the 'focal point',
-    which is the average value computed from earlier. The size of the underlying blur filter, the number of
-    pixels used as samples for the 'focal point' and a skew to arbitrarily strengthen or weaken the applied blurred
-    are all adjustable.
+    creating a depth buffer using the \emph{t} values and vector components of the camera rays, and then 
+    computing an average depth value of an adjustable sampling 'box' at the center of the viewport. This value 
+    is then used as the mean value of a normal (Gaussian) distribution, and the standard deviation of all valid
+    pixels (ones whose rays interesected with an object) is computed and used as the standard deviation for 
+    the distribution. A box blur filter is applied on all of the pixels in the viewport and then the depth 
+    value of each pixel is input into the probability density function of the normal distribution established 
+    earlier. The output is used to compute the blend between the blurred and sharp pixel values, effectively 
+    allowing variable blurring depending on the depth of each pixel compared to the 'focal point', which is 
+    the average value computed from earlier. The size of the underlying blur filter, the number of pixels used 
+    as samples for the 'focal point' and a skew to arbitrarily strengthen or weaken the applied blur are all adjustable.
 
     \begin{figure}[!htb]
       \minipage{0.49\textwidth}
@@ -258,10 +255,10 @@
         \includegraphics[width=\linewidth, height=6cm]{images/monkey_dof}
         \caption*{Monkey render with depth of field filter}
       \endminipage
-  \end{figure}
+    \end{figure}
 
-  The effect is particularly noticeable on the back of the monkey's head and its ears, which receive a substantial amount
-  of blur due to being relatively far from the 'focal point'.
+    \noindent{The effect is particularly noticeable on the back of the monkey's head and its ears, which receive a substantial amount
+    of blur due to being relatively far from the 'focal point'.}
 
     \newpage
 
@@ -271,7 +268,7 @@
     \section{Performance Test}
     The following table shows the number of triangles contained in a scene, the time it took to render that 
     scene without the extra features, with the extra features, and the amount of BVH levels that were 
-    constructed ().
+    constructed.
     
     \vspace{5mm}
     
@@ -280,9 +277,9 @@
       \textbf{Feature} &\textbf{Cube} &\textbf{Cornell} &\textbf{Monkey} &\textbf{Dragon}\\
       \hline
       Number Triangles  &12     &32     &968    &87130\\
-      Render Time       &0s     &0s     &0s     &0s\\
-      Extra Time        &0s     &0s     &0s     &0s\\
-      BVH Levels        &0      &0      &0      &0\\
+      Render Time       &0.1s   &1.2s   &6.7s   &78.4s\\
+      Extra Time        &1.9s   &10.1s  &41.8s  &294.9s\\
+      BVH Levels        &4      &6      &10     &17\\
       \hline
     \end{tabular}
 \end{document}

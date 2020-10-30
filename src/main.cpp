@@ -7,7 +7,6 @@
 #include "trackball.h"
 #include "window.h"
 #include "lighting.h"
-#include "ray_debug.h"
 #include "post_processing.h"
 // Disable compiler warnings in third-party code (which we cannot change).
 DISABLE_WARNINGS_PUSH()
