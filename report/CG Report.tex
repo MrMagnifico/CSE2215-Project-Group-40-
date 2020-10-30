@@ -13,7 +13,6 @@
     \maketitle
 
     \section{Work Distribution}
-    
     \begin{tabular}{ |p{2.5cm}||p{2.5cm}|p{2.5cm}|p{2.5cm}| }
         \hline
         \textbf{Feature} &\textbf{Ee Xuan} &\textbf{Elvira} &\textbf{William}\\
@@ -27,9 +26,11 @@
         Planar Area                    &100\%  &0\%    &0\%\\
         Bloom Filter                   &0\%    &0\%    &100\%\\
         Anti-aliasing                  &0\%    &0\%    &100\%\\
-        Several Rays                   &0\%    &0\%    &100\%\\
+        Depth Field                    &0\%    &0\%    &100\%\\
         \hline
     \end{tabular}
+
+    \newpage
 
     \section{Features}
     \subsection{Main Requirements}
@@ -40,17 +41,18 @@
     scene, and those results are then added together to compute the final, direct illumination.
 
     \begin{center}
-        \includegraphics[scale=0.60]{images/phong_shading_showcase}
+        \includegraphics[scale=0.39]{images/phong_shading_showcase}
 
-        The lighting effects produced by phong shading with two light sources RGB(255, 0, 255) and 
-        RGB(0, 255, 255)
+        The lighting effects produced by phong shading with two light sources RGB(255, 0, 255) and RGB(0, 255, 255)
 
         \vspace{5mm}
 
-        \includegraphics[scale=0.60]{images/phong_shading_debug}
+        \includegraphics[scale=0.40]{images/phong_shading_debug}
 
         The phong shading debug, showing one ray shot from another angle, along with its normal
     \end{center}
+
+    \newpage
 
     \subsubsection{Recursive Ray Tracing}
     The recursive ray tracer builds upon the previously implemented ray shading,
@@ -60,16 +62,18 @@
     mentioned limiting conditions applies or the recursion depth reaches a pre-set \emph{RECURSION\_LIMT}.
 
     \begin{center}
-        \includegraphics[scale=0.65]{images/recursive_ray_tracer_showcase}
+        \includegraphics[scale=0.45]{images/recursive_ray_tracer_showcase}
 
         The complex specular effects produced by recursive ray tracing, which include proper mirror simulation
 
         \vspace{5mm}
 
-        \includegraphics[scale=0.65]{images/recursive_ray_tracer_debug}
+        \includegraphics[scale=0.45]{images/recursive_ray_tracer_debug}
 
         The recursive ray tracer debug, showing two total rays in the recursive chain, along with their normals
     \end{center}
+
+    \newpage
 
     \subsubsection{Hard Shadows}
     To discover which light source(s) contribute to the lighting of a certain point, ray(s) are shot from the 
@@ -79,77 +83,110 @@
     leaving it black if none of the point lights contribute.
 
     \begin{center}
-        \includegraphics[scale=0.60]{images/hard_shadow_showcase}
+        \includegraphics[scale=0.365]{images/hard_shadow_showcase}
 
         The result of using a single point light source to create hard shadows.
 
-        \includegraphics[scale=0.65]{images/hard_shadow_debug}
+        \vspace{5mm}
+
+        \includegraphics[scale=0.39]{images/hard_shadow_debug}
 
         The hard shadow debug, showing a ray shot from another angle, along with its normal and a red line 
         indicating the intersection with another object before reaching the point light source.
     \end{center}
 
+    \newpage
+
     \subsubsection{Soft Shadows}
-    The first step to the implementing the soft shadows is to generate uniformly distributed rays from the 
-    spherical light source. In order, to get a uniform distribution of rays from the lightsource, the idea of 
-    the fibonacci sequence was used, by generating unifromly distributed step sizes using the golden ratio. 
-    The second problem, was to remove light rays from the 'wrong' side of the light source, this was done by 
-    using the center of the sphere and radius to calculate the longest the light ray on the 'right' side could 
-    be. So, by using this method we are able to check each randomly generated sample of the light. Finally, a 
-    number of sample points are taken, from these sample points we check to see if they are on the 'right' 
-    side of the sphere and if the sample ray does not intersect an object. For each point we then divide the 
-    lighting value obtained by the number of sample rays taken from the sphere, giving the average light value. 
+    It first generates uniformly distributed rays from the spherical light source using the fibonacci sequence 
+    with a golden ratio to ensure equal step sizes. To prevent light rays from the opposite side of the sphere 
+    to influence the intersection point, the center and radius of the sphere are used to calculate the longest 
+    a light ray on the appropriate side could be. A pre-determined number of sample points is taken and used 
+    to see if they do not intersect with an object before reaching the intersection point. Once this is 
+    established, we enumerate the samples that reached the point and divide it by the total amount of rays 
+    shot from the spherical light source, resulting in the light value at that point.
 
     \begin{center}
-        \includegraphics[scale=0.80]{images/soft_shadow_showcase}
+        \includegraphics[scale=0.41]{images/soft_shadow_showcase}
 
         The result of using a single spherical light source with the \emph{SPHERE\_SAMPLE\_LIMIT} set to 100 
         to create soft shadows.
 
-        \includegraphics[scale=0.80]{images/soft_shadow_debug}
+        \vspace{5mm}
+
+        \includegraphics[scale=0.41]{images/soft_shadow_debug}
 
         The soft shadow debug, showing all of the uniformly distributed samples generated by the spherical 
         light source. The yellow lines indicate a direct path from the intersection to the light source and 
         the red lines indicate the intersection with another object before reaching the spherical light source.
     \end{center}
 
+    \newpage
+
     \subsubsection{Bounding Volume Hierarchy}
-    This Bounding Volume Hierarchy (BVH) is contructed using the Surface Area Heuristic (SAH) and binning. 
-    It starts off by indexing every triangle in the model and creating the first Axis-Aligned Bounding Box 
-    (AABB) that contains all of the triangles. It then proceeds to split this bounding box until the maximum 
-    level or the minimum amount of triangles is reached. Splitting relies on the use of alternating axes and 
-    bins to create a split boundary. It goes on to compute the cost function of these new splits, and only 
-    creates new nodes for them if they are more efficient to use than the original. After constructing the 
-    BVH, it will recursively check if a ray shot at the scene will intersect with the parent AABB or any of 
-    its children. If there is no intersection with any of the leaf nodes, there is no intersection with the 
-    model. Otherwise, all triangles in the respective leaf node will be checked for intersection.
-    Two constructors are provided for the BVH: one where the maximum tree depth can be manually set;
-    and one where the number of triangles in the scene is used as a heuristic to determine the maximum
-    tree depth.
+    This BVH is contructed using the SAH and binning. It starts off by indexing every triangle in the model 
+    and creating the first AABB that contains all of the triangles. It then proceeds to split this bounding 
+    box until the maximum level or the minimum amount of triangles is reached. Splitting relies on the use of 
+    alternating axes and bins to create a split boundary. The longest axis in the bounding box being analysed 
+    is determined and used for the split boundary. It goes on to compute the cost function of these new 
+    splits, and only creates new nodes for them if they are more efficient to use than the original. After 
+    constructing the BVH, it will recursively check if a ray shot at the scene will intersect with the parent 
+    AABB or any of its children. If there is no intersection with any of the leaf nodes, there is no intersection 
+    with the model. Otherwise, all triangles in the respective leaf node will be checked for intersection. Two 
+    constructors are provided for the BVH: one where the maximum tree depth can be manually set; and one where 
+    the number of triangles in the scene is used as a heuristic to determine the maximum tree depth.
 
     \begin{figure}[!htb]
-        \minipage{0.49\textwidth}
-          \includegraphics[width=\linewidth, height=5cm]{images/bvh_level_one}
+        \minipage{0.48\textwidth}
+          \includegraphics[width=\linewidth, height=4.7cm]{images/bvh_level_one}
           \caption*{The first level of the BVH}
         \endminipage\hfill
-        \minipage{0.49\textwidth}
-          \includegraphics[width=\linewidth, height=5cm]{images/bvh_level_two}
+        \minipage{0.48\textwidth}
+          \includegraphics[width=\linewidth, height=4.7cm]{images/bvh_level_two}
           \caption*{The second level of the BVH}
         \endminipage
-        \newline
-        \minipage{0.49\textwidth}
-          \includegraphics[width=\linewidth, height=5cm]{images/bvh_level_three}
+      \end{figure}
+      
+      \begin{figure}[!htb]
+        \minipage{0.48\textwidth}
+          \includegraphics[width=\linewidth, height=4.7cm]{images/bvh_level_three}
           \caption*{The third level of the BVH}
         \endminipage\hfill
-        \minipage{0.49\textwidth}
-          \includegraphics[width=\linewidth, height=5cm]{images/bvh_level_ten}
+        \minipage{0.48\textwidth}
+          \includegraphics[width=\linewidth, height=4.7cm]{images/bvh_level_ten}
           \caption*{The tenth level of the BVH}
         \endminipage
     \end{figure}
 
+    \newpage
+
     \subsection{Extra Requirements}
     \subsubsection{Interpolation}
-    To be constructed
+    A simple method for computing interpolated values. When a ray hits a triangle, the alpha, beta and gamma 
+    values for the barycentric coordinates are calculated using the triangle areas. Those coordinates are 
+    used in combination with the vertex normals to compute the new and improved triangle normal.
+
+    \begin{figure}[!htb]
+      \centering
+      \captionsetup{justification=centering}
+      \minipage{0.49\textwidth}
+        \includegraphics[width=\linewidth, height=6cm]{images/monke_no_bary}
+        \caption*{Monkey without interpolation}
+      \endminipage\hfill
+      \minipage{0.49\textwidth}
+        \includegraphics[width=\linewidth, height=6cm]{images/monke_bary}
+        \caption*{Monkey with interpolation}
+      \endminipage
+      \vspace{5mm}
+      \minipage{0.49\textwidth}
+        \includegraphics[width=\linewidth, height=6cm]{images/monke_no_bary_debug}
+        \caption*{Debug without interpolation, the green normal is very small}
+      \endminipage\hfill
+      \minipage{0.49\textwidth}
+        \includegraphics[width=\linewidth, height=6cm]{images/monke_bary_debug}
+        \caption*{Debug with interpolation, the green normal is appropriately sized}
+      \endminipage
+    \end{figure}
 
     \subsubsection{Planar Area Light}
     To be constructed
@@ -173,20 +210,11 @@
     \end{figure}
     
     \subsubsection{Cast Multiple Rays Per Pixel / Anti-Aliasing}
-    A simple super-sampling anti-aliasing method that renders multiple rays per pixel (in effect, rendering at a higher resolution) using a uniform distribution of samples.
-    The colour values of the sample rays are then averaged with no weighting to produce the final colour value.
-    The exact degree of super-sampling can be adjusted via the \emph{SAMPLING\_FACTOR} variable.
-
-    \begin{center}
-        \includegraphics[scale=0.75]{images/supersampling_debugger.png}
-
-        {\footnotesize Visual debug at a 2x super-sampling ratio showing 4 rays in total
-        
-        (rays are projected from a far distance for easier demonstration)\par}
-    \end{center}
-
-    As can be clearly seen, the end result is a much smoother image,
-    with far fewer visible jagged edges and higher overall fidelity.
+    A simple super-sampling anti-aliasing method that renders multiple rays per pixel (in effect, rendering 
+    at a higher resolution) using a uniform distribution of samples. The colour values of the sample rays are 
+    then averaged with no weighting to produce the final colour value. The exact degree of super-sampling can 
+    be adjusted via the \emph{SAMPLING\_FACTOR} variable. As can clearly be seen in the figure below, the end 
+    result is a much smoother image, with far fewer visible jagged edges and higher overall fidelity.
 
     \begin{figure}[!htb]
         \minipage{0.49\textwidth}
@@ -199,9 +227,33 @@
         \endminipage
     \end{figure}
 
+    \begin{center}
+      \includegraphics[scale=0.75]{images/supersampling_debugger.png}
+
+      Visual debug at a 2x super-sampling ratio showing 4 rays in total (rays are projected from a far 
+      distance for easier demonstration)
+    \end{center}
+
+    \newpage
+
     \section{Models}
-    To be constructed
+    No extra models were used.
 
     \section{Performance Test}
-    To be constructed
+    The following table shows the number of triangles contained in a scene, the time it took to render that 
+    scene without the extra features, with the extra features, and the amount of BVH levels that were 
+    constructed ().
+    
+    \vspace{5mm}
+    
+    \noindent\begin{tabular}{ |p{2.8cm}||p{1.6cm}|p{1.6cm}|p{1.6cm}|p{1.6cm}| }
+      \hline
+      \textbf{Feature} &\textbf{Cube} &\textbf{Cornell} &\textbf{Monkey} &\textbf{Dragon}\\
+      \hline
+      Number Triangles  &12     &32     &968    &87130\\
+      Render Time       &0s     &0s     &0s     &0s\\
+      Extra Time        &0s     &0s     &0s     &0s\\
+      BVH Levels        &0      &0      &0      &0\\
+      \hline
+    \end{tabular}
 \end{document}

@@ -57,7 +57,11 @@ void BoundingVolumeHierarchy::debugDraw(int level)
 {
     for (BVHNode &node : nodeVector)
     {
-        if (node.level == level) {drawAABB(node.boundingBox, DrawMode::Wireframe);}
+        if (node.level == level)
+        {
+            if (node.isLeaf) {drawAABB(node.boundingBox, DrawMode::Wireframe, glm::vec3{1.0f, 1.0f, 0.0f});} // Draw yellow box if leaf node.
+            else {drawAABB(node.boundingBox, DrawMode::Wireframe, glm::vec3{1.0f, 0.0f, 0.0f});}             // Draw red box if inner node.
+        }
     }
 }
 
@@ -130,7 +134,7 @@ bool BoundingVolumeHierarchy::bvhIntersect(Ray& ray, HitInfo& hitInfo, BVHNode& 
                 current_mesh.vertices[current_triangle[2]]};
             if (intersectRayWithTriangle(vertices[0].p, vertices[1].p, vertices[2].p, ray, hitInfo))
             {
-                barycentricInterpolation(vertices, ray.origin + ray.t * ray.direction, hitInfo);
+                // barycentricInterpolation(vertices, ray.origin + ray.t * ray.direction, hitInfo); // ACTIVATES INTERPOLATION
                 hitInfo.material = current_mesh.material;
                 hit = true;
             }
@@ -205,9 +209,8 @@ std::pair<std::vector<std::pair<int, std::vector<int>>>, std::vector<std::pair<i
 BoundingVolumeHierarchy::computeOptimalSplit(std::vector<std::pair<int, std::vector<int>>> &meshTriangleIndices,
                                              std::vector<std::pair<float, float>> &limits, int current_level)
 {
-    // Define and alternate axis to split on.
-    int comparison_axis = current_level % 3;
-    int area_axis = (current_level + 1) % 3;
+    // Define the axis to split on.
+    int comparison_axis = determineLongestAxis(limits);
 
     std::pair<std::vector<std::pair<int, std::vector<int>>>, std::vector<std::pair<int, std::vector<int>>>> left_right_split_indices;
     float cost = std::numeric_limits<float>::max();
@@ -251,13 +254,11 @@ BoundingVolumeHierarchy::computeOptimalSplit(std::vector<std::pair<int, std::vec
             lhs_indices.push_back(lhs_mesh_indices);
             rhs_indices.push_back(rhs_mesh_indices);
         }
-        // Compute surface area of splits' bounding boxes.
+        // Compute total surface area of the splits' bounding boxes.
         std::vector<std::pair<float, float>> lhs_bounding_box = computeBoundingBoxLimits(lhs_indices);
         std::vector<std::pair<float, float>> rhs_bounding_box = computeBoundingBoxLimits(rhs_indices);
-        float lhs_area = (std::abs(lhs_bounding_box[comparison_axis].second - lhs_bounding_box[comparison_axis].first)
-        * std::abs(lhs_bounding_box[area_axis].second - lhs_bounding_box[area_axis].first));
-        float rhs_area = (std::abs(rhs_bounding_box[comparison_axis].second - rhs_bounding_box[comparison_axis].first)
-        * std::abs(rhs_bounding_box[area_axis].second - rhs_bounding_box[area_axis].first));
+        float lhs_area = computeTotalSurfaceArea(lhs_bounding_box);
+        float rhs_area = computeTotalSurfaceArea(rhs_bounding_box);
 
         // Compute cost function and keep or discard current bin.
         float candidate_cost = float(lhs_area*countTriangles(lhs_indices)) + float(rhs_area*countTriangles(rhs_indices));
@@ -292,4 +293,32 @@ int BoundingVolumeHierarchy::countTriangles(std::vector<std::pair<int, std::vect
     int triangle_count = 0;
     for (std::pair<int, std::vector<int>> &coordinate_pair : meshTriangleIndices) {triangle_count += coordinate_pair.second.size();}
     return triangle_count;
+}
+
+int BoundingVolumeHierarchy::determineLongestAxis(std::vector<std::pair<float, float>> &limits)
+{
+    float x_length = std::abs(limits[0].second - limits[0].first);
+    float y_length = std::abs(limits[1].second - limits[1].first);
+    float z_length = std::abs(limits[2].second - limits[2].first);
+    float lengths[] = {x_length, y_length, z_length};
+
+    int max_axis = -1;
+    float max_length = std::numeric_limits<float>::min();
+    for (int counter = 0; counter < 3; counter++)
+    {
+        if (lengths[counter] > max_length)
+        {
+            max_length = lengths[counter];
+            max_axis = counter;
+        }
+    }
+    return max_axis;
+}
+
+float BoundingVolumeHierarchy::computeTotalSurfaceArea(std::vector<std::pair<float, float>> &limits)
+{
+    float x_length = std::abs(limits[0].second - limits[0].first);
+    float y_length = std::abs(limits[1].second - limits[1].first);
+    float z_length = std::abs(limits[2].second - limits[2].first);
+    return (2.0f*x_length*y_length) + (2.0f*x_length*z_length) + (2.0f*y_length*z_length);
 }
